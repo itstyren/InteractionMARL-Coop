@@ -3,7 +3,7 @@ env='Lattice'
 scenario='SelfCompare'
 algo='DQN'
 exp="MiniB16"
-env_dim=10
+env_dim=6
 dilemma_strength=1
 seed_max=1
 

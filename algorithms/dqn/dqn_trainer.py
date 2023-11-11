@@ -67,7 +67,7 @@ class Strategy_DQN(BaseAlgorithm):
         gamma: float = 0.99,
         gradient_steps: int = 1,
         exploration_fraction: float = 0.1,
-        exploration_initial_eps: float = 1,
+        exploration_initial_eps: float = 0.1,
         exploration_final_eps: float = 0.05,
         max_grad_norm: float = 10,
         device=torch.device("cpu"),
@@ -278,15 +278,20 @@ class Strategy_DQN(BaseAlgorithm):
             # Clip gradient norm
             torch.nn.utils.clip_grad_norm_(self.policy.parameters(), self.max_grad_norm)
             self.policy.optimizer.step()
+
             if self.all_args.replay_scheme == "prioritized":
                 td_errors=(current_q_values-target_q_values).numpy(force=True)
+                # if np.any(np.isnan(td_errors)):
+                #     print(current_q_values)
+                #     print(target_q_values)
+                    # print(replay_data)
                 new_priorities = np.abs(td_errors) + self.prioritized_replay_eps
+                # print(new_priorities,self.prioritized_replay_eps)
                 replay_buffer.update_priorities(priority_idxes, new_priorities)
 
         # Increase update counter
         self._n_updates += self.gradient_steps
-
-        train_info["train/loss"] = np.mean(np.mean(losses))
+        train_info["train/loss"] = np.mean(losses)
         train_info["train/n_updates"] = self._n_updates
         train_info["train/lr"] = lr
         train_info["train/prioritized_replay_beta"] = beta

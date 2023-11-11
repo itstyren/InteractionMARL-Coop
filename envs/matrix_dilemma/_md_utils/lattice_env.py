@@ -269,7 +269,7 @@ class LatticeEnv(AECEnv):
             for idx, agent in enumerate(self.world.agents):
                 strategy_reward[agent.action.s].append(agent.reward)
             # Calculate the mean reward for each strategy
-            strategy_reward = [np.mean(s_r) for s_r in strategy_reward]
+            strategy_mean_reward = [np.nanmean(s_r) if s_r else 0 for s_r in strategy_reward]
 
         # Get current obs info for each agent
         for agent in self.world.agents:
@@ -293,9 +293,9 @@ class LatticeEnv(AECEnv):
 
                 # Compare agent's reward with the average reward of the opposite strategy
                 if agent.action.s == 0:
-                    compare_reward_n.append(agent.reward - strategy_reward[1])
+                    compare_reward_n.append(agent.reward - strategy_mean_reward[1])
                 else:
-                    compare_reward_n.append(agent.reward - strategy_reward[0])
+                    compare_reward_n.append(agent.reward - strategy_mean_reward[0])
 
                 # if agent.action.s != self.world.agents[n_i].action.s:
                 # if agent.action.s==0:
@@ -321,8 +321,10 @@ class LatticeEnv(AECEnv):
         infos = {
             "instant_payoff": instant_payoff_n,
             "individual_action": action_n,
-            "current_cooperation": _,
+            "current_cooperation": coop_level,
         }
+        # if  np.any(np.isnan(compare_reward_n)):
+        #     print(compare_reward_n)
 
         if self.args.compare_reward:
             return obs_n, compare_reward_n, termination, infos

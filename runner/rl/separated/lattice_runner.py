@@ -110,8 +110,7 @@ class LatticeRunner(Runner):
                     "rollout/avg_coop_for_cooperation": self.avg_strategy_coop_based[0],
                     "rollout/avg_coop_for_defection": self.avg_strategy_coop_based[1],
                     "rollout/target_update": self.target_update,
-                    "rollout/step_cooperation_level": 1
-                    - np.mean([info["current_cooperation"] for info in infos]),
+                    "rollout/step_cooperation_level": np.mean([info["current_cooperation"] for info in infos]),
                 }
                 self.log_rollout(rollout_info)
                 episode_exploration_rate.append(self.exploration_rate)

@@ -355,33 +355,38 @@
 # # The binary_matrix now contains the mappings for numbers 0 to 15
 # print(binary_matrix.astype(int)[0])
 
-import torch
-import torch.nn as nn
+# import torch
+# import torch.nn as nn
+# import numpy as np
+
+# # NLP Example
+# batch, sentence_length, embedding_dim = 20, 5, 10
+# embedding = torch.randn(batch, sentence_length, embedding_dim)
+# layer_norm = nn.LayerNorm(embedding_dim)
+# # Activate module
+# layer_norm(embedding)
+# # Image Example
+
+# array_data = np.random.rand(10)
+# print(array_data)
+# array_copy = array_data.copy()
+# mean_rewards = np.nanmean(array_copy)
+# std_rewards = np.nanstd(array_copy)
+# sample_rewards = (array_data - mean_rewards) / (std_rewards + 1e-5)
+# print(sample_rewards)
+
+# tensor_data = torch.tensor(array_data)
+# tensor_data = tensor_data.to(torch.bfloat16)
+
+
+# layer_norm = nn.LayerNorm(10)
+
+# output = layer_norm(tensor_data)
+# # Convert the PyTorch tensor to a CPU float tensor and detach gradients
+# cpu_float_tensor = output.cpu().detach().float()
+# print(cpu_float_tensor.numpy())
 import numpy as np
 
-# NLP Example
-batch, sentence_length, embedding_dim = 20, 5, 10
-embedding = torch.randn(batch, sentence_length, embedding_dim)
-layer_norm = nn.LayerNorm(embedding_dim)
-# Activate module
-layer_norm(embedding)
-# Image Example
-
-array_data = np.random.rand(10)
-print(array_data)
-array_copy = array_data.copy()
-mean_rewards = np.nanmean(array_copy)
-std_rewards = np.nanstd(array_copy)
-sample_rewards = (array_data - mean_rewards) / (std_rewards + 1e-5)
-print(sample_rewards)
-
-tensor_data = torch.tensor(array_data)
-tensor_data = tensor_data.to(torch.bfloat16)
-
-
-layer_norm = nn.LayerNorm(10)
-
-output = layer_norm(tensor_data)
-# Convert the PyTorch tensor to a CPU float tensor and detach gradients
-cpu_float_tensor = output.cpu().detach().float()
-print(cpu_float_tensor.numpy())
+strategy_reward = [[], []]
+strategy_mean_reward = [np.nanmean(s_r) if s_r else 0 for s_r in strategy_reward]
+print(strategy_mean_reward)
