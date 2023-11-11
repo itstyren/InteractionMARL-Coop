@@ -7,7 +7,7 @@
 #$ -o ~/scratch/self-model/inteaction-dynamics-in-social-dilemmas/logs
 #$ -e ~/scratch/self-model/inteaction-dynamics-in-social-dilemmas/logs
 
-#$ -pe smp.pe 8       # Choose a PE name from the tables below and a number of cores
+#$ -pe smp.pe 4       # Choose a PE name from the tables below and a number of cores
 
 # load Anaconda Python
 module load apps/binapps/anaconda3/2022.10
