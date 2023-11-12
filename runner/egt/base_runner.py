@@ -77,13 +77,25 @@ class Runner(object):
     def collect(self, step):
         raise NotImplementedError
 
-    def log_train(self, train_infos, total_num_steps):
+    def print_train(self, train_infos):
+        print("-" * 44)
         print(
-            "Coop Level {}, Average Group Reward {}".format(
-                train_infos[-1].get("coop_level"),
-                train_infos[-1].get("average_episode_rewards"),
+            "|    Average Coop Level  {:>17.2f} |".format(
+                train_infos["results/episode_cooperation_level"]
             )
         )
+        print(
+            "|    Average Group Reward  {:>15.2f} |".format(
+                train_infos["payoff/average_episode_rewards"]
+            )
+        )
+        print("-" * 44, "\n")
+        # print(
+        #     "Coop Level {}, Average Group Reward {}".format(
+        #         train_infos[-1].get("coop_level"),
+        #         train_infos[-1].get("average_episode_rewards"),
+        #     )
+        # )
 
     def _setup_learn(self, config):
         # Wandb is being used for logging
@@ -142,3 +154,19 @@ class Runner(object):
                 images,
                 duration=self.all_args.ifi,
             )
+
+
+    def log_train(self, train_infos):
+        """
+        Log training info.
+        :param train_infos: (dict) information about training update.
+        :param total_num_steps: (int) total number of training env steps.
+        """
+        # print(train_infos)
+        for k, v in train_infos.items():
+            if self.use_wandb:
+                wandb.log({k: v}, step=self.num_timesteps)
+            else:
+                self.logger.add_scalars(
+                    k, {k: v}, self.num_timesteps * self.n_rollout_threads
+                )

@@ -455,11 +455,15 @@ class Runner(object):
             )
         )
         print(
-            "|    Strategy Best Robutness  {:>9},{} |".format(
+            "|    Best Cooperation Robutness  {:>9.2f} |".format(
                 train_infos["robutness/best_cooperation_length"],
-                train_infos["robutness/best_defection_length"],
             )
         )
+        print(
+            "|    Best Defection Robutness  {:>11.2f} |".format(
+                train_infos["robutness/best_defection_length"]
+            )
+        )        
         print("-" * 44, "\n")
 
     def write_to_video(self, all_frames, episode):

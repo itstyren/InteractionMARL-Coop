@@ -202,3 +202,21 @@ def consecutive_counts(row):
 
 
     return consecutive_counts, total_counts,longest_consecutive
+
+
+def get_next_elements(arr, start_index, num_elements):
+    # Calculate the effective start and end indices
+    effective_start = start_index % len(arr)
+    effective_end = (effective_start + num_elements) % len(arr)
+
+    # Handle the case where the range wraps around the array boundary
+    if effective_end > effective_start:
+        result_indices = list(range(effective_start, effective_end))
+    else:
+        result_indices = list(range(effective_start, len(arr))) + list(range(0, effective_end))
+
+    return result_indices
+
+def get_past_idx(start_index, array_size, num_elements):
+    indices = [(start_index - i) % array_size for i in range(1, num_elements + 1)]
+    return indices

@@ -80,6 +80,10 @@ class LatticeRunner(Runner):
                             self.write_to_video(all_frames, episode)
 
                         self.callback.on_step()
+                    
+                    if self.all_args.normalize_pattern=='episode':
+                        for _,br in enumerate(self.buffer):
+                            br.normalized_episode_rewards(self.episode_length)
 
                     num_collected_episodes += 1
                     episode += 1
@@ -110,7 +114,9 @@ class LatticeRunner(Runner):
                     "rollout/avg_coop_for_cooperation": self.avg_strategy_coop_based[0],
                     "rollout/avg_coop_for_defection": self.avg_strategy_coop_based[1],
                     "rollout/target_update": self.target_update,
-                    "rollout/step_cooperation_level": np.mean([info["current_cooperation"] for info in infos]),
+                    "rollout/step_cooperation_level": np.mean(
+                        [info["current_cooperation"] for info in infos]
+                    ),
                 }
                 self.log_rollout(rollout_info)
                 episode_exploration_rate.append(self.exploration_rate)
@@ -327,43 +333,7 @@ class LatticeRunner(Runner):
         """
         episode_rwds, episode_acts, episode_final_acts, terms = self.extract_buffer()
 
-        episode_acts_copy = np.array(episode_acts).copy()
-        episode_acts_flattened = [
-            [np.concatenate(episode) for episode in agent]
-            for agent in episode_acts_copy
-        ]
-        episode_acts_transposed = [
-            np.array(_).T for _ in episode_acts_flattened
-        ]  # Agent-Env-Epsisode
-        # Calculate and print the summary result
-
-        # print(episode_acts_flattened[-1])
-        # print(episode_acts_copy[-1])
-        # print(episode_acts_transposed)
-        # print(len(episode_acts_transposed[0]))
-
-        # Calculate and print the summary result
-        summary_consecutive_ = [
-            [consecutive_counts(env) for i, env in enumerate(agent)]
-            for agent in episode_acts_transposed
-        ]
-        # print(summary_consecutive_)
-        strategy_average_robutness = [[], []]
-        strategy_best_robutness = [[], []]
-
-        for agent_idx, agent_consecutive in enumerate(summary_consecutive_):
-            for counts, total_counts, longest_consecutive in agent_consecutive:
-                for target, (total, count) in total_counts.items():
-                    # print(total, count)
-                    average_count = total / count
-                    strategy_average_robutness[target].append(average_count)
-                for target, duration in longest_consecutive.items():
-                    strategy_best_robutness[target].append(duration)
-
-        self.average_robutness = [
-            np.mean(strategy) for strategy in strategy_average_robutness
-        ]
-        self.best_robutness = [np.max(strategy) for strategy in strategy_best_robutness]
+        self.calculate_strategy_roubutness(np.array(episode_acts).copy())
 
         self._dump_logs(episode)
 
@@ -418,8 +388,8 @@ class LatticeRunner(Runner):
 
         train_infos["robutness/average_cooperation_length"] = self.average_robutness[0]
         train_infos["robutness/average_defection_length"] = self.average_robutness[1]
-        train_infos["robutness/best_cooperation_length"] = int(self.best_robutness[0])
-        train_infos["robutness/best_defection_length"] = int(self.best_robutness[1])
+        train_infos["robutness/best_cooperation_length"] = self.best_robutness[0]
+        train_infos["robutness/best_defection_length"] = self.best_robutness[1]
 
         self.print_train(train_infos, extra_info)
         self.log_train(train_infos)
@@ -431,3 +401,37 @@ class LatticeRunner(Runner):
         :return: The current environment
         """
         return None
+
+    def calculate_strategy_roubutness(self, episode_acts):
+        """
+        :param episode_acts:
+        :return:
+        """
+        episode_acts_flattened = [
+            [np.concatenate(episode) for episode in agent] for agent in episode_acts
+        ]
+        episode_acts_transposed = [
+            np.array(_).T for _ in episode_acts_flattened
+        ]  # Agent-Env-Epsisode
+        # Calculate and print the summary result
+        summary_consecutive_ = [
+            [consecutive_counts(env) for i, env in enumerate(agent)]
+            for agent in episode_acts_transposed
+        ]
+        strategy_average_robutness = [[], []]
+        strategy_best_robutness = [[], []]
+
+        for agent_idx, agent_consecutive in enumerate(summary_consecutive_):
+            for counts, total_counts, longest_consecutive in agent_consecutive:
+                for target, (total, count) in total_counts.items():
+                    # print(total, count)
+                    average_count = total / count
+                    strategy_average_robutness[target].append(average_count)
+                for target, duration in longest_consecutive.items():
+                    strategy_best_robutness[target].append(duration)
+
+        self.average_robutness = [
+            np.mean(strategy) / self.episode_length
+            for strategy in strategy_average_robutness
+        ]
+        self.best_robutness = [np.max(strategy)/ self.episode_length for strategy in strategy_best_robutness]

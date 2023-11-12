@@ -5,6 +5,7 @@ from typing import NamedTuple
 from torch.nn import functional as F
 from typing import Any, Dict, List, Optional, Tuple, Type, TypeVar, Union
 from utils.segment_tree import SumSegmentTree, MinSegmentTree
+from utils.util import get_past_idx
 import random
 from abc import ABC, abstractmethod
 from gymnasium import spaces
@@ -84,6 +85,7 @@ class BaseBuffer(ABC):
         self.termination = np.zeros((self.buffer_size, self.n_envs, 1), dtype=bool)
         self.truncation = np.zeros((self.buffer_size, self.n_envs, 1), dtype=bool)
         self.norm_rewards = np.zeros((self.buffer_size, self.n_envs, 1), dtype=bool)
+        self.episode_norm_rewards = np.zeros((self.buffer_size, self.n_envs, 1), dtype=np.float32)
 
     def current_buffer_size(self):
         """
@@ -95,6 +97,20 @@ class BaseBuffer(ABC):
         else:
             _indx = self.step
         return _indx
+
+    def normalized_episode_rewards(self,episode_length):
+        """
+        Normalize reward only beased on this episode
+        """
+        episode_indices = get_past_idx(self.step,self.buffer_size,episode_length)
+        past_rewards=np.array([self.rewards[i] for i in episode_indices])
+        rewards_copy=np.concatenate(past_rewards).copy()
+        mean_rewards = np.nanmean(rewards_copy)
+        std_rewards = np.nanstd(rewards_copy)
+        rewards = (np.concatenate(past_rewards) - mean_rewards) / (
+            std_rewards + 1e-5
+        )
+        self.episode_norm_rewards[episode_indices]=rewards.reshape(past_rewards.shape).copy()
 
     def normalized_rewards(self):
         """
@@ -169,8 +185,9 @@ class BaseBuffer(ABC):
         # print('action:',self.actions[batch_inds, env_indices, :])
         if self.normalize_pattern == "all":
             self.normalized_rewards()
-            sample_rewards = np.concatenate(self.norm_rewards[batch_inds, env_indices])
+            sample_rewards = np.concatenate(self.norm_rewards[batch_inds, env_indices])      
         else:
+            # 'episode' pattern also use this sample_rewards
             sample_rewards = np.concatenate(self.rewards[batch_inds, env_indices])
             if self.normalize_pattern == "sample":
                 rewards_copy = sample_rewards.copy()

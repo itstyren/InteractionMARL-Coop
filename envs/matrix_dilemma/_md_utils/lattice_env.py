@@ -269,7 +269,9 @@ class LatticeEnv(AECEnv):
             for idx, agent in enumerate(self.world.agents):
                 strategy_reward[agent.action.s].append(agent.reward)
             # Calculate the mean reward for each strategy
-            strategy_mean_reward = [np.nanmean(s_r) if s_r else 0 for s_r in strategy_reward]
+            strategy_mean_reward = [
+                np.nanmean(s_r) if s_r else 0 for s_r in strategy_reward
+            ]
 
         # Get current obs info for each agent
         for agent in self.world.agents:
@@ -383,48 +385,89 @@ class LatticeEnv(AECEnv):
                 infos["cumulative_payoffs"] = list(self._cumulative_rewards.values())
 
             return obs_n, reward_n, termination, truncation, infos
-        
+
         else:
             self._clear_rewards()
 
         # self._cumulative_rewards[cur_agent] = 0
 
     def render(self, mode, step):
-        '''
+        """
         render current env
-        :param mode: 
+        :param mode:
         :param step: current global step for all envs
-        '''
+        """
         self.render_mode = mode
         if self.render_mode is None:
             gymnasium.logger.warn(
                 "You are calling render method without specifying any render mode."
             )
             return
-        
+
         # Define color map for rendering
         color_set = np.array(["#0c056d", "red"])
-        cmap = colors.ListedColormap([color_set[0], color_set[1]])
-        bounds = [0, 1, 2]
-        norm = colors.BoundaryNorm(bounds, cmap.N)
+        # color_set = np.array(['#B0E0E6','#87CEEB','#4682B4',"#0c056d", "red","red","red","red"])
+        # cmap = colors.ListedColormap([color_set[0], color_set[1],color_set[2],color_set[3],color_set[4],color_set[5],color_set[6],color_set[7]])
+        # cmap = colors.ListedColormap([color_set[0], color_set[1]])
+        # Create the colormap
+        cmap = colors.LinearSegmentedColormap.from_list(
+            "my_list", [color_set[0], color_set[1]], N=8
+        )
+
+        # bounds = [0, 1, 2]
+        # norm = colors.BoundaryNorm(bounds, cmap.N)
+
         action_n = []
-        
+        interaction_n = []
+
         # Convert agent actions to a 2D NumPy array
         action_n = np.array(self.current_actions).reshape(
             self.scenario.env_dim, self.scenario.env_dim
         )
 
-        # Create a subplot for rendering
-        fig, ax = plt.subplots(figsize=(3, 3))
-        im = ax.imshow(action_n, cmap=cmap, norm=norm)
+        for agent in self.world.agents:
+            interaction_time = 0
+            for _, n_idx in enumerate(agent.neighbours):
+                if (
+                    agent.action.ia[_] == 1
+                    and self.world.agents[n_idx].action.ia[
+                        self.world.agents[n_idx].neighbours.index(agent.index)
+                    ]
+                    == 1
+                ):
+                    interaction_time += 1
 
-        # Configure plot aesthetics
-        ax.axis("off")
-        ax.set_title("Step {}, Dilemma {}".format(step, self.world.payoff_matrix[1][0]))
+            interaction_n.append(interaction_time)
+        interaction_n = (
+            np.array(interaction_n).reshape(
+                self.scenario.env_dim, self.scenario.env_dim
+            )
+            / 4
+        )
+        scaled_interaction_n = 0.25 + 0.75 * interaction_n
+        # print(interaction_n)
+        # print(action_n + interaction_n)
+
+        # Create a subplot for rendering
+        # fig, ax = plt.subplots(figsize=(3, 3))
+        fig, axs = plt.subplots(1, 2, figsize=(6, 3))
+        for idx,ax in enumerate(axs.flat):
+        #     pass
+        # im = ax.imshow(action_n, cmap=cmap, alpha=scaled_interaction_n,norm=norm)
+            if idx==0:
+                im = ax.imshow(action_n, cmap=cmap)
+            else:
+                im = ax.imshow(action_n-interaction_n, cmap=cmap)
+                fig.colorbar(im, ax=ax)
+
+            # Configure plot aesthetics
+            ax.axis("off")
+            ax.set_title("Step {}, Dilemma {}".format(step, self.world.payoff_matrix[1][0]))
         fig.tight_layout()
 
         # Save the plot as an image in memory
         import io
+
         with io.BytesIO() as buffer:  # use buffer memory
             plt.savefig(buffer, format="png", dpi=plt.gcf().dpi)
             buffer.seek(0)
@@ -441,4 +484,4 @@ class LatticeEnv(AECEnv):
         return the cooperative state for whole system
         """
         coop_level = np.mean(self.current_actions)
-        return 1-coop_level
+        return 1 - coop_level

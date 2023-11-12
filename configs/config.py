@@ -178,7 +178,7 @@ def get_config():
     )
     parser.add_argument(
         "--normalize_pattern",
-        choices=["none", "all", "sample"],
+        choices=["none", "all", "sample",'episode'],
         default="none",
         help="how to normalize the training reward",
     )

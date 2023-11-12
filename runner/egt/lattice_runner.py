@@ -58,16 +58,15 @@ class LatticeRunner(Runner):
                                 int(total_num_steps / (end - start))))
                 if self.env_name == "Lattice":
                     strategy_set=[]
-                    group_reward=[]
-                    group_info={}
                     for agent_id in range(self.num_agents):
                         strategy_set.append(self.envs.env.world.agents[agent_id].action.s)
-                        group_reward.append(train_infos[agent_id].get('reward'))
-                    group_info['coop_level']=1-np.mean(strategy_set)
-                    group_info['average_episode_rewards']=np.mean(group_reward)
-                    train_infos.append(group_info)
+                    #     group_reward.append(train_infos[agent_id].get('reward'))
+                    train_infos['results/episode_cooperation_level']=1-np.mean(strategy_set)
+                    # group_info['average_episode_rewards']=np.mean(group_reward)
+                    # train_infos.append(group_info)
                     
-                self.log_train(train_infos, total_num_steps)
+                self.print_train(train_infos)
+                self.log_train(train_infos)
 
     def warmup(self):
         '''
@@ -130,7 +129,9 @@ class LatticeRunner(Runner):
         '''
         train new strategy
         '''
+        # training info for every agent
         train_infos = []
+
         arr_order = np.arange(self.num_agents)
         for agent_id in arr_order:
             # print('old_s',self.envs.env.world.agents[agent_id].action.s)
@@ -147,11 +148,15 @@ class LatticeRunner(Runner):
         for agent_id in range(self.num_agents):
             obs=self.envs.env.observe(self.envs.env.world.agents[agent_id].name)
             self.buffer[agent_id].after_update(obs) 
-            # if agent_id==10:
-            #     print('==============update strategy buffer')
-            #     print(self.buffer[agent_id].obs) 
 
-        return train_infos
+        avarage_reward=np.array(
+            [entry['reward'] for entry in train_infos],dtype=float
+            )
+        ti={
+           'payoff/average_episode_rewards':np.mean(avarage_reward)
+        }
+
+        return ti
     
     def render(self, num_timesteps):
         """

@@ -695,15 +695,220 @@
 # print(row_means)
 
 
-import numpy as np
+# import numpy as np
 
-# Sample 2D NumPy array
-array = np.array([[1, 2, 3],
-                  [4, 5, 6],
-                  [np.nan, 8, 9]])
+# # Sample 2D NumPy array
+# array = np.array([[1, 2, 3],
+#                   [4, 5, 6],
+#                   [np.nan, 8, 9]])
 
-# Calculate the mean by column
-column_means = np.nanmean(array, axis=0)
+# # Calculate the mean by column
+# column_means = np.nanmean(array, axis=0)
 
-print("Mean by column:")
-print(column_means)
+# print("Mean by column:")
+# print(column_means)
+
+
+
+# import numpy as np
+# import matplotlib.pyplot as plt
+# from matplotlib import colors
+
+# # Define color set for plt.imshow
+# color_set = np.array(["#0c056d", "#000000"])
+
+# # Divide each color into four subcolors
+# num_subcolors = 4
+# subcolors = []
+
+# for color in color_set:
+#     # Convert hex color to RGB
+#     rgb_color = colors.hex2color(color)
+    
+#     # Create a gradient of colors
+#     gradient = np.linspace(0, 1, num_subcolors)
+    
+#     # Interpolate RGB values along the gradient
+#     subcolor_set = [colors.rgb2hex(np.interp(gradient, [0, 1], [rgb_color[j], 1])) for j in range(3)]
+    
+#     subcolors.append(subcolor_set)
+
+# # Flatten the subcolors list
+# subcolors = np.array(subcolors).flatten()
+
+# # Define a new colormap using the subcolors
+# cmap = colors.ListedColormap(subcolors)
+
+# # Set up bounds and normalization
+# bounds = np.arange(2 * num_subcolors + 1)
+# ncolors = len(bounds) - 1  # Set ncolors to the number of bins
+# norm = colors.BoundaryNorm(bounds, ncolors)
+
+# # Example usage with plt.imshow
+# data = np.random.random((10, 10))  # Replace this with your actual data
+# plt.imshow(data, cmap=cmap, norm=norm)
+# plt.colorbar()
+
+# plt.show()
+
+
+
+# import matplotlib.pyplot as plt
+# import numpy as np
+
+# import matplotlib as mpl
+# from matplotlib.colors import LinearSegmentedColormap
+# from matplotlib import colors
+# # Make some illustrative fake data:
+
+# x = np.arange(0, np.pi, 0.1)
+# y = np.arange(0, 2 * np.pi, 0.1)
+# X, Y = np.meshgrid(x, y)
+# Z = np.cos(X) * np.sin(Y) * 10
+
+# # # Define color set for plt.imshow
+# # color_set = np.array(["#0c056d", "red"])
+
+# # for color in color_set:
+# #     # Convert hex color to RGB
+# #     rgb_color = colors.hex2color(color)
+# #     print(rgb_color)
+
+# print(Z)
+
+# colors = ["red","#0c056d"]  # R -> G -> B
+# n_bins = [3, 6, 10, 100]  # Discretizes the interpolation into bins
+# cmap_name = 'my_list'
+# fig, axs = plt.subplots(2, 2, figsize=(6, 9))
+# fig.subplots_adjust(left=0.02, bottom=0.06, right=0.95, top=0.94, wspace=0.05)
+# for n_bin, ax in zip(n_bins, axs.flat):
+#     # Create the colormap
+#     cmap = LinearSegmentedColormap.from_list(cmap_name, colors, N=n_bin)
+#     print(cmap)
+#     # Fewer bins will result in "coarser" colomap interpolation
+#     im = ax.imshow(Z, origin='lower', cmap=cmap)
+#     ax.set_title("N bins: %s" % n_bin)
+#     fig.colorbar(im, ax=ax)
+# plt.show()
+
+
+# from matplotlib.colors import to_rgba
+
+# def interpolate_color(color1, color2, factor):
+#     # Convert color names to RGB
+#     def color_to_rgb(color):
+#         rgba = to_rgba(color)
+#         return tuple(int(c * 255) for c in rgba[:3])
+
+#     def rgb_to_hex(rgb_color):
+#         return "#{:02x}{:02x}{:02x}".format(*rgb_color)
+
+#     rgb_color1 = color_to_rgb(color1)
+#     rgb_color2 = color_to_rgb(color2)
+
+#     # Interpolate RGB values
+#     interpolated_rgb = tuple(int(c1 + (c2 - c1) * factor) for c1, c2 in zip(rgb_color1, rgb_color2))
+
+#     # Convert back to hex
+#     interpolated_hex = rgb_to_hex(interpolated_rgb)
+
+#     return interpolated_hex
+
+# # Example usage
+# color1 = "#0c056d"
+# color2 = "red"
+# factor = 1 / 8  # Interpolation factor
+
+# interpolated_color = interpolate_color(color1, color2, factor)
+# print(interpolated_color)
+
+# import matplotlib.pyplot as plt
+# import numpy as np
+
+# from matplotlib.colors import Normalize
+
+
+# def normal_pdf(x, mean, var):
+#     return np.exp(-(x - mean)**2 / (2*var))
+
+
+# # Generate the space in which the blobs will live
+# xmin, xmax, ymin, ymax = (0, 100, 0, 100)
+# n_bins = 100
+# xx = np.linspace(xmin, xmax, n_bins)
+# yy = np.linspace(ymin, ymax, n_bins)
+
+# # Generate the blobs. The range of the values is roughly -.0002 to .0002
+# means_high = [20, 50]
+# means_low = [50, 60]
+# var = [150, 200]
+
+# gauss_x_high = normal_pdf(xx, means_high[0], var[0])
+# gauss_y_high = normal_pdf(yy, means_high[1], var[0])
+
+# gauss_x_low = normal_pdf(xx, means_low[0], var[1])
+# gauss_y_low = normal_pdf(yy, means_low[1], var[1])
+
+# weights = (np.outer(gauss_y_high, gauss_x_high)
+#            - np.outer(gauss_y_low, gauss_x_low))
+
+# print(len(weights))
+
+# # Create an alpha channel of linearly increasing values moving to the right.
+# alphas = np.ones(weights.shape)
+# alphas[:, 30:] = np.linspace(1, 0, 70)
+
+# print(alphas)
+
+# # We'll also create a grey background into which the pixels will fade
+# greys = np.full((*weights.shape, 3), 70, dtype=np.uint8)
+# # print(greys)
+
+# # First we'll plot these blobs using ``imshow`` without transparency.
+# vmax = np.abs(weights).max()
+# imshow_kwargs = {
+#     'vmax': vmax,
+#     'vmin': -vmax,
+#     'cmap': 'RdYlBu',
+#     'extent': (xmin, xmax, ymin, ymax),
+# }
+
+# fig, ax = plt.subplots()
+# # ax.imshow(greys)
+# ax.imshow(weights,alpha=alphas, **imshow_kwargs)
+# # ax.imshow(weights,alpha=alphas, **imshow_kwargs)
+# ax.set_axis_off()
+# # plt.show()
+
+
+# def get_next_elements(arr, start_index, num_elements):
+#     # Calculate the effective start and end indices
+#     effective_start = start_index % len(arr)
+#     effective_end = (effective_start + num_elements) % len(arr)
+
+#     # Handle the case where the range wraps around the array boundary
+#     if effective_end > effective_start:
+#         result_indices = list(range(effective_start, effective_end))
+#     else:
+#         result_indices = list(range(effective_start, len(arr))) + list(range(0, effective_end))
+
+#     return result_indices
+
+# # Example usage
+# array_size = 100
+# start_index = 99
+# num_elements = 10
+
+# indices = get_next_elements(list(range(array_size)), start_index, num_elements)
+# print(indices)
+
+def get_indices(start_index, array_size, num_elements):
+    indices = [(start_index - i) % array_size for i in range(1, num_elements + 1)]
+    return indices
+
+array_size = 100
+start_index = 5
+num_elements = 10
+
+result = get_indices(start_index, array_size, num_elements)
+print(result)
