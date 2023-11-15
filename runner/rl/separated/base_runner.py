@@ -124,7 +124,7 @@ class Runner(object):
                 prioritized_replay_beta=self.beta,
                 prioritized_replay_eps=self.all_args.prioritized_replay_eps,
                 device=self.device,
-                action_flag=0
+                action_flag=0 if self.all_args.train_pattern=='strategy' else 2
             )
             if self.all_args.train_interaction:
                 iteract_tr=TrainAlgo(
@@ -192,6 +192,7 @@ class Runner(object):
             self.run_dir = str(wandb.run.dir)
             self.logger = None
             self.gif_dir = str(self.run_dir + "/gifs")
+            self.plot_dir=str(self.run_dir + "/plots")
         else:
             #  Configure directories for logging and saving models manually
             self.run_dir = config["run_dir"]
@@ -203,9 +204,13 @@ class Runner(object):
             if not os.path.exists(self.save_dir):
                 os.makedirs(self.save_dir)
             self.gif_dir = str(self.run_dir / "gifs")
+            self.plot_dir=str(self.run_dir / "plots")
 
         if not os.path.exists(self.gif_dir):
             os.makedirs(self.gif_dir)
+
+        if not os.path.exists(self.plot_dir):
+            os.makedirs(self.plot_dir)
 
     def run(self):
         raise NotImplementedError
@@ -231,9 +236,10 @@ class Runner(object):
         """
         # Sample actions
         actions,interactions = self.collect()
+        # print(actions,interactions)
         
         # one step to environment
-        if self.all_args.train_interaction:
+        if self.all_args.train_interaction or self.all_args.train_pattern=='both':
             combine_action=np.dstack((actions, interactions))
             next_obs, rews, terminations, truncations, infos = self.envs.step(combine_action)
         else:
@@ -267,9 +273,14 @@ class Runner(object):
         """
         train_infos = []
         for agent_id in torch.randperm(self.num_agents):
-            ti = self.trainer[agent_id].train(
-                batch_size=self.all_args.mini_batch, replay_buffer=self.buffer[agent_id],action_flag=0
+            if self.all_args.train_pattern == 'both':
+                ti = self.trainer[agent_id].train(
+                batch_size=self.all_args.mini_batch, replay_buffer=self.buffer[agent_id],action_flag=2
             )
+            else: 
+                ti = self.trainer[agent_id].train(
+                    batch_size=self.all_args.mini_batch, replay_buffer=self.buffer[agent_id],action_flag=0
+                )
             if self.all_args.train_interaction:
                 self.iteract_trainer[agent_id].train(
                     batch_size=self.all_args.mini_batch, replay_buffer=self.buffer[agent_id],action_flag=1

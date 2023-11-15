@@ -214,8 +214,9 @@ class SubprocVecEnv(ShareVecEnv):
         for remote in self.remotes:
             remote.send(('render', (mode,step)))
         if mode == "rgb_array":   
-            frame = [remote.recv() for remote in self.remotes]
-            return np.stack(frame) 
+            results = [remote.recv() for remote in self.remotes]
+            frame,intraction_array=zip(*results)
+            return np.stack(frame),np.stack(intraction_array) 
         
 
 def worker(remote, parent_remote, env_fn_wrapper):
@@ -245,8 +246,8 @@ def worker(remote, parent_remote, env_fn_wrapper):
             remote.send((ob,cl))
         elif cmd == 'render':
             if data[0] == "rgb_array":
-                fr = env.render(mode=data[0],step=data[1])
-                remote.send(fr)
+                fr,interact_arr = env.render(mode=data[0],step=data[1])
+                remote.send((fr,interact_arr))
             elif data == "human":
                 env.render(mode=data)
         elif cmd == 'reset_task':

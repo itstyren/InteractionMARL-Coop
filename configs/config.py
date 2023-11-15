@@ -250,7 +250,7 @@ def get_config():
         "--net_arch",
         nargs="+",  # "+" allows one or more values to be passed as a list
         type=int,
-        default=[16, 16],
+        default=[32, 32],
         help="The number and size of each layer",
     )
     # run parameters
@@ -260,6 +260,12 @@ def get_config():
         default=False,
         help="use a linear schedule on the learning rate",
     )
+    parser.add_argument(
+        "--train_pattern",
+        choices=["strategy", "both"],
+        default="strategy",
+        help="pass a unit name of frequency type, together make tuple like (5, step) or (2, episode)",
+    )    
 
     # run parameters
     parser.add_argument(
@@ -306,6 +312,14 @@ def get_config():
         default=2,
         help="maximum number of files, when reached delete the oldest one.",
     )
+    parser.add_argument(
+        "--save_result",
+        action="store_true",
+        default=False,
+        help="by default, do not save replay buffer. If set, save replay buffer.",
+    )
+
+
 
     # log parameters
     parser.add_argument(

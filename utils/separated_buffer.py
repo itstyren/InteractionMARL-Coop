@@ -5,7 +5,7 @@ from typing import NamedTuple
 from torch.nn import functional as F
 from typing import Any, Dict, List, Optional, Tuple, Type, TypeVar, Union
 from utils.segment_tree import SumSegmentTree, MinSegmentTree
-from utils.util import get_past_idx
+from utils.util import get_past_idx,convert_arrays_to_original
 import random
 from abc import ABC, abstractmethod
 from gymnasium import spaces
@@ -102,15 +102,20 @@ class BaseBuffer(ABC):
         """
         Normalize reward only beased on this episode
         """
-        episode_indices = get_past_idx(self.step,self.buffer_size,episode_length)
+        episode_indices = get_past_idx(self.step,self.buffer_size,episode_length)[::-1]
         past_rewards=np.array([self.rewards[i] for i in episode_indices])
+        # print('past_rewards',past_rewards[0])
         rewards_copy=np.concatenate(past_rewards).copy()
         mean_rewards = np.nanmean(rewards_copy)
         std_rewards = np.nanstd(rewards_copy)
         rewards = (np.concatenate(past_rewards) - mean_rewards) / (
             std_rewards + 1e-5
         )
+        # print('norm_reward',rewards.reshape(past_rewards.shape)[0])
+        # print('====')
+        # rewards = np.concatenate(past_rewards)
         self.episode_norm_rewards[episode_indices]=rewards.reshape(past_rewards.shape).copy()
+        # print('episode_indices',episode_indices)
 
     def normalized_rewards(self):
         """
@@ -178,6 +183,7 @@ class BaseBuffer(ABC):
     ):
         # print("env_indices", env_indices)
         # print("batch_inds", batch_inds)
+        # input()
 
         # print('current obs',self.obs[batch_inds, env_indices, :])
         # print('next obs',self.obs[batch_inds+1, env_indices, :])
@@ -186,6 +192,9 @@ class BaseBuffer(ABC):
         if self.normalize_pattern == "all":
             self.normalized_rewards()
             sample_rewards = np.concatenate(self.norm_rewards[batch_inds, env_indices])      
+        elif self.normalize_pattern == "episode":
+            sample_rewards = np.concatenate(self.episode_norm_rewards[batch_inds, env_indices])    
+            # print(sample_rewards) 
         else:
             # 'episode' pattern also use this sample_rewards
             sample_rewards = np.concatenate(self.rewards[batch_inds, env_indices])
@@ -194,12 +203,20 @@ class BaseBuffer(ABC):
                 mean_rewards = np.nanmean(rewards_copy)
                 std_rewards = np.nanstd(rewards_copy)
                 sample_rewards = (sample_rewards - mean_rewards) / (std_rewards + 1e-5)
+        
+        if action_flag == 0:
+            sample_actions=np.concatenate(self.actions[batch_inds, env_indices])
+        elif action_flag==1:
+            sample_actions=np.concatenate(self.interaction[batch_inds, env_indices])
+        else:
+            actions=np.concatenate(self.actions[batch_inds, env_indices])
+            interactions=np.concatenate(self.interaction[batch_inds, env_indices])
+            sample_actions=convert_arrays_to_original(actions,interactions)
 
+        # print(sample_rewards)
         data = (
             self.obs[batch_inds, env_indices],
-            np.concatenate(self.actions[batch_inds, env_indices])
-            if action_flag == 0
-            else np.concatenate(self.interaction[batch_inds, env_indices]),
+            sample_actions,
             self.next_obs[batch_inds, env_indices],  # next obs
             np.concatenate(self.termination[batch_inds, env_indices]).astype(int),
             sample_rewards,

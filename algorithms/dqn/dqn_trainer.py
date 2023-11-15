@@ -10,17 +10,11 @@ from stable_baselines3.common.utils import (
 )
 from stable_baselines3.dqn.policies import QNetwork
 from algorithms.dqn.policy import DQN_Policy
-from stable_baselines3.common.utils import (
-    check_for_correct_spaces,
-    get_device,
-    get_schedule_fn,
-    get_system_info,
-    set_random_seed,
-    update_learning_rate,
-)
 from algorithms.baseAlgorithm import BaseAlgorithm
 from stable_baselines3.common.type_aliases import GymEnv, MaybeCallback, Schedule
 from torch.nn import functional as F
+from utils.util import convert_array_to_two_arrays
+
 
 
 
@@ -242,8 +236,12 @@ class Strategy_DQN(BaseAlgorithm):
                     + (1 - replay_data.dones) * self.gamma * next_q_values
                 )
 
-                if action_flag==0:
-                    for a,r in zip(replay_data.actions,replay_data.rewards):
+                if action_flag==0 or action_flag==2:
+                    if action_flag==0:
+                        acts=replay_data.actions
+                    else:
+                        acts,intacts=convert_array_to_two_arrays(replay_data.actions)
+                    for a,r in zip(acts,replay_data.rewards):
                         train_rewards[a.item()].append(r.item())
                     for i,rewards in enumerate(train_rewards):
                         if len(rewards)>0:

@@ -40,6 +40,7 @@ class Scenario(BaseScenario):
     def make_world(self, args):
         self.env_dim=args.env_dim
         self.train_interaction=args.train_interaction
+        self.train_pattern=args.train_pattern
         agent_num = args.env_dim**2
         world = World(np.array(args.initial_ratio), args.dilemma_strength)
         # add agent
@@ -84,7 +85,7 @@ class Scenario(BaseScenario):
             #     agent.action.ia[neighbout_idx]=0
             # else:
             #     agent.action.ia[neighbout_idx]=1
-            if self.train_interaction:
+            if self.train_interaction or self.train_pattern=='both':
                 if agent.action.ia[neighbout_idx]==1 and world.agents[j].action.ia[world.agents[j].neighbours.index(agent.index)]==1:
                     reward += world.payoff_matrix[agent.action.s, world.agents[j].action.s]
             else:
@@ -139,7 +140,7 @@ class Scenario(BaseScenario):
         # arr[:, 0] = arr[:, 0].astype(int)
         agent.self_act_m.append(agent.action.s)
         # print(agent.self_act_m)
-        if self.train_interaction:
+        if self.train_interaction or self.train_pattern:
             obs={
                 # 'n_i':neighbour_index,
                 'n_s':flat_neighbours_act_m,

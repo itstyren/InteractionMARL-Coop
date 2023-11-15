@@ -62,6 +62,7 @@ class BaseAlgorithm(ABC):
         # Used for updating schedules
         self._total_timesteps = 0
         self.action_size=self.env.action_spaces["agent_0"][self.action_flag].n
+        # print(self.action_size)
         # self.action_size=get_action_dim(self.env.action_spaces["agent_0"][self.action_flag])
 
         self.prioritized_replay_beta=prioritized_replay_beta

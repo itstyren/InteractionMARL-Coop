@@ -8,6 +8,7 @@ import gymnasium
 from matplotlib import colors, cm
 import matplotlib.pyplot as plt
 import pdb
+import wandb
 
 
 class LatticeEnv(AECEnv):
@@ -71,6 +72,7 @@ class LatticeEnv(AECEnv):
                 self.action_spaces[agent.name] = [
                     spaces.Discrete(2),
                     spaces.Discrete(2**4),
+                    spaces.Discrete(2 * (2**4)),
                 ]
                 # self.action_spaces[agent.name] = spaces.MultiDiscrete(
                 #     np.array([2,2])
@@ -92,7 +94,7 @@ class LatticeEnv(AECEnv):
                     }
                 )
             else:
-                if self.args.train_interaction:
+                if self.args.train_interaction or self.args.train_pattern == "both":
                     self.observation_spaces[agent.name] = spaces.Dict(
                         {
                             "n_s": spaces.MultiDiscrete(
@@ -212,7 +214,7 @@ class LatticeEnv(AECEnv):
             # action_n.append(action)
             self._set_action(action, agent)
 
-            if self.args.train_interaction:
+            if self.args.train_interaction or self.args.train_pattern == "both":
                 interaction = self.current_interaction[i]
                 self._set_interaction(interaction, agent)
 
@@ -319,11 +321,23 @@ class LatticeEnv(AECEnv):
             # print('cooperation level',coop_level)
             termination = True
 
+        interaction_n=self.count_effective_interaction()
+        # Calculate the element-wise product
+        # elementwise_product = interaction_n * action_n
+        
+        # Calculate the average for each value (0 and 1) in the second array
+        ave_interact_c = np.mean(interaction_n[np.array(action_n) == 0])
+        ave_interact_d = np.mean(interaction_n[np.array(action_n) == 1])
+
+        ave_payoff_c=np.mean(np.array(instant_payoff_n)[np.array(action_n) == 0])
+        ave_payoff_d=np.mean(np.array(instant_payoff_n)[np.array(action_n) == 1])
+
         # Prepare info dictionary
         infos = {
-            "instant_payoff": instant_payoff_n,
-            "individual_action": action_n,
+            "instant_payoff": [ave_payoff_c,ave_payoff_d],
+            # "individual_action": action_n,
             "current_cooperation": coop_level,
+            'strategy_based_interaction':[ave_interact_c,ave_interact_d]
         }
         # if  np.any(np.isnan(compare_reward_n)):
         #     print(compare_reward_n)
@@ -358,7 +372,6 @@ class LatticeEnv(AECEnv):
         next_idx = (current_idx + 1) % self.num_agents
         # set agent_selection to next agent
         self.agent_selection = self._agent_selector.next()
-
         # set action for current agent
         if isinstance(action, np.ndarray):
             self.current_actions[current_idx] = action[0]
@@ -398,6 +411,7 @@ class LatticeEnv(AECEnv):
         :param step: current global step for all envs
         """
         self.render_mode = mode
+        i_n=[]
         if self.render_mode is None:
             gymnasium.logger.warn(
                 "You are calling render method without specifying any render mode."
@@ -405,17 +419,25 @@ class LatticeEnv(AECEnv):
             return
 
         # Define color map for rendering
-        color_set = np.array(["#0c056d", "red"])
-        # color_set = np.array(['#B0E0E6','#87CEEB','#4682B4',"#0c056d", "red","red","red","red"])
-        # cmap = colors.ListedColormap([color_set[0], color_set[1],color_set[2],color_set[3],color_set[4],color_set[5],color_set[6],color_set[7]])
-        # cmap = colors.ListedColormap([color_set[0], color_set[1]])
-        # Create the colormap
-        cmap = colors.LinearSegmentedColormap.from_list(
-            "my_list", [color_set[0], color_set[1]], N=8
-        )
+        # color_set = np.array(["#0c056d",'#3c368a','#6d69a7','#9d9bc4','#cecde1','#ffe7e7','#ffd0d0','#ff7272','#ff4242', "#ff1414"])
+        color_set = np.array(["#0c056d", "#ff1414"])
 
-        # bounds = [0, 1, 2]
-        # norm = colors.BoundaryNorm(bounds, cmap.N)
+        # cmap = colors.ListedColormap([color_set[0], color_set[1],color_set[2],color_set[3],color_set[4],color_set[5],color_set[6],color_set[7]])
+        cmap = colors.ListedColormap(np.array(["#0c056d", "red"]))
+        # Create the colormap
+        if self.args.train_interaction or self.args.train_pattern == "both":
+            cmap_interact = colors.LinearSegmentedColormap.from_list(
+                "my_list", color_set, N=10
+            )
+            # cmap = colors.ListedColormap([color_set[0],color_set[0], color_set[1],color_set[2],color_set[3],color_set[4],color_set[5],color_set[6],color_set[7],color_set[8]])
+            # cmap_interact = colors.ListedColormap(color_set)
+            # bounds = [0,1,2,3,4]
+            # norm = colors.BoundaryNorm(bounds, cmap.N)
+
+        else:
+            cmap = colors.ListedColormap([color_set[0], color_set[1]])
+            bounds = [0, 1, 2]
+            norm = colors.BoundaryNorm(bounds, cmap.N)
 
         action_n = []
         interaction_n = []
@@ -424,45 +446,40 @@ class LatticeEnv(AECEnv):
         action_n = np.array(self.current_actions).reshape(
             self.scenario.env_dim, self.scenario.env_dim
         )
+        if self.args.train_interaction or self.args.train_pattern == "both":
+            interaction_n = self.count_effective_interaction()
 
-        for agent in self.world.agents:
-            interaction_time = 0
-            for _, n_idx in enumerate(agent.neighbours):
-                if (
-                    agent.action.ia[_] == 1
-                    and self.world.agents[n_idx].action.ia[
-                        self.world.agents[n_idx].neighbours.index(agent.index)
-                    ]
-                    == 1
-                ):
-                    interaction_time += 1
-
-            interaction_n.append(interaction_time)
-        interaction_n = (
-            np.array(interaction_n).reshape(
-                self.scenario.env_dim, self.scenario.env_dim
+            # Modify interaction_n based on action_n
+            i_n = np.where(
+                action_n.flatten() == 0,
+                -np.maximum(interaction_n, 0.05),
+                np.maximum(interaction_n, 0.05),
             )
-            / 4
-        )
-        scaled_interaction_n = 0.25 + 0.75 * interaction_n
-        # print(interaction_n)
-        # print(action_n + interaction_n)
+            i_n = i_n.reshape(self.scenario.env_dim, self.scenario.env_dim)
 
         # Create a subplot for rendering
-        # fig, ax = plt.subplots(figsize=(3, 3))
-        fig, axs = plt.subplots(1, 2, figsize=(6, 3))
-        for idx,ax in enumerate(axs.flat):
-        #     pass
-        # im = ax.imshow(action_n, cmap=cmap, alpha=scaled_interaction_n,norm=norm)
-            if idx==0:
-                im = ax.imshow(action_n, cmap=cmap)
-            else:
-                im = ax.imshow(action_n-interaction_n, cmap=cmap)
-                fig.colorbar(im, ax=ax)
-
-            # Configure plot aesthetics
+        if self.args.train_interaction or self.args.train_pattern == "both":
+            fig, axs = plt.subplots(1, 2, figsize=(6, 3))
+            for idx, ax in enumerate(axs.flat):
+                # im = ax.imshow(action_n, cmap=cmap, alpha=scaled_interaction_n,norm=norm)
+                if idx == 0:
+                    im = ax.imshow(action_n, cmap=cmap)
+                else:
+                    im = ax.imshow(i_n, cmap=cmap_interact, vmin=-1, vmax=1)
+                    fig.colorbar(im, ax=ax)
             ax.axis("off")
-            ax.set_title("Step {}, Dilemma {}".format(step, self.world.payoff_matrix[1][0]))
+            fig.suptitle(
+                "Step {}, Dilemma {}".format(step, self.world.payoff_matrix[1][0])
+            )
+        else:
+            fig, ax = plt.subplots(figsize=(3, 3))
+            im = ax.imshow(action_n, cmap=cmap, norm=norm)
+            ax.axis("off")
+            ax.set_title(
+                "Step {}, Dilemma {}".format(step, self.world.payoff_matrix[1][0])
+            )
+            # Configure plot aesthetics
+
         fig.tight_layout()
 
         # Save the plot as an image in memory
@@ -477,7 +494,7 @@ class LatticeEnv(AECEnv):
         # plt.show()
         # Close the figure to avoid warning
         plt.close()
-        return image
+        return image, i_n 
 
     def state(self) -> np.ndarray:
         """
@@ -485,3 +502,24 @@ class LatticeEnv(AECEnv):
         """
         coop_level = np.mean(self.current_actions)
         return 1 - coop_level
+
+    def count_effective_interaction(self):
+        """
+        count effective interaction agent with their neighbour
+        :return interaction_n: The effecitve ratio for every agent
+        """
+        interaction_n = []
+        for agent in self.world.agents:
+            interaction_time = 0
+            for _, n_idx in enumerate(agent.neighbours):
+                if (
+                    agent.action.ia[_] == 1
+                    and self.world.agents[n_idx].action.ia[
+                        self.world.agents[n_idx].neighbours.index(agent.index)
+                    ]
+                    == 1
+                ):
+                    interaction_time += 1
+
+            interaction_n.append(interaction_time)
+        return np.array(interaction_n) / 4

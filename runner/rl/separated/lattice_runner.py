@@ -3,7 +3,7 @@ import numpy as np
 import torch
 import time
 from stable_baselines3.common.utils import should_collect_more_steps
-from utils.util import gini, consecutive_counts
+from utils.util import gini, consecutive_counts, convert_array_to_two_arrays,save_array
 import copy
 
 
@@ -38,14 +38,20 @@ class LatticeRunner(Runner):
         episode_c_reward_during_training = []
         episode_d_reward_during_training = []
         episode_exploration_rate = []
+        interaction_log=[]
 
         while self.num_timesteps < self.num_env_steps:
             num_collected_steps, num_collected_episodes = 0, 0
             while should_collect_more_steps(
                 self.train_freq, num_collected_steps, num_collected_episodes
             ):
+                # print(step)
                 # if one episode end
                 if step >= self.episode_length:
+                    # print('episode',episode)
+                    if self.all_args.normalize_pattern == "episode":
+                        for _, br in enumerate(self.buffer):
+                            br.normalized_episode_rewards(self.episode_length)
                     # # train evey end of episode
                     # if self.all_args.algorithm_name != "DQN":
 
@@ -79,11 +85,8 @@ class LatticeRunner(Runner):
                         ):
                             self.write_to_video(all_frames, episode)
 
+                        # save model callback
                         self.callback.on_step()
-                    
-                    if self.all_args.normalize_pattern=='episode':
-                        for _,br in enumerate(self.buffer):
-                            br.normalized_episode_rewards(self.episode_length)
 
                     num_collected_episodes += 1
                     episode += 1
@@ -100,14 +103,20 @@ class LatticeRunner(Runner):
                 if self.all_args.use_render and (
                     episode % self.video_interval == 0
                     or episode == self.episodes - 1
-                    or step + 1 == self.episode_length
+                    
                 ):
                     # print('step:',step,'episode:',episode)
-                    image = self.render(self.num_timesteps)
+                    image,interaction_n = self.render(self.num_timesteps)
+                    # print(interaction_n)
                     all_frames.append(image[0])
+                    if self.have_train and self.all_args.save_result and step+1==self.episode_length:
+                        interaction_log.append(interaction_n)
+                        save_array(interaction_log,self.plot_dir,'agent_intraction.npz')
 
                 # Sample actions
                 infos = self.collect_rollouts()
+                # print(infos)
+
                 episode_info.append(infos)
                 rollout_info = {
                     "rollout/exploration_rate": self.exploration_rate,
@@ -117,6 +126,12 @@ class LatticeRunner(Runner):
                     "rollout/step_cooperation_level": np.mean(
                         [info["current_cooperation"] for info in infos]
                     ),
+                    # 'rollout/ave_intreaction_for_cooperation':np.mean(
+                    #     [info["current_cooperation"][0] for info in infos]
+                    # ),
+                    # 'rollout/ave_intreaction_for_defection':np.mean(
+                    #     [info["current_cooperation"][1] for info in infos]
+                    # ),
                 }
                 self.log_rollout(rollout_info)
                 episode_exploration_rate.append(self.exploration_rate)
@@ -129,6 +144,7 @@ class LatticeRunner(Runner):
                 self.all_args.algorithm_name == "DQN"
                 and self.num_timesteps > self.learning_starts
             ):
+                # print(self.num_timesteps,episode)
                 self.have_train = True
                 self.train_infos = self.train()
                 self.log_train(self.train_infos)
@@ -184,6 +200,14 @@ class LatticeRunner(Runner):
                         for _ in range(self.n_rollout_threads)
                     ]
                 )
+                # print(agent_action)
+                if self.all_args.train_pattern == "both":
+                    agent_action, agent_interaction = convert_array_to_two_arrays(
+                        agent_action
+                    )
+                # print(agent_action)
+                # print(agent_interaction)
+                # print('=====')
                 if self.all_args.train_interaction:
                     agent_interaction = np.array(
                         [
@@ -197,6 +221,10 @@ class LatticeRunner(Runner):
                     self.buffer[agent_id].obs[step]
                 )
                 agent_action = _t2n(agent_action)
+                if self.all_args.train_pattern == "both":
+                    agent_action, agent_interaction = convert_array_to_two_arrays(
+                        agent_action
+                    )
                 # wwether
                 if self.all_args.train_interaction:
                     agent_interaction = self.iteract_trainer[agent_id].predict(
@@ -218,11 +246,12 @@ class LatticeRunner(Runner):
             exploration_rates.append(exploration_rate)
 
             if self.all_args.train_interaction:
-                interactions.append(agent_interaction)
                 self.iteract_trainer[agent_id]._update_current_progress_remaining(
                     self.num_timesteps, self.num_env_steps
                 )
                 _, _ = self.iteract_trainer[agent_id]._on_step()
+            elif self.all_args.train_pattern == "both":
+                interactions.append(agent_interaction)
 
         # Calculate the average strategy based on cooperation for all agents
         self.avg_strategy_coop_based = np.nanmean(strategy_coop_based, axis=0)
@@ -232,7 +261,9 @@ class LatticeRunner(Runner):
 
         return (
             np.column_stack(actions),
-            np.column_stack(interactions) if self.all_args.train_interaction else None,
+            np.column_stack(interactions)
+            if self.all_args.train_interaction or self.all_args.train_pattern == "both"
+            else None,
         )
 
     def _calculate_previous_base(self, agent_id, agent_action, step):
@@ -274,7 +305,10 @@ class LatticeRunner(Runner):
                 termination,
                 truncation,
                 actions[:, agent_id],
-                interactions[:, agent_id] if self.all_args.train_interaction else [],
+                interactions[:, agent_id]
+                if self.all_args.train_interaction
+                or self.all_args.train_pattern == "both"
+                else [],
             )
 
     @torch.no_grad()
@@ -283,8 +317,8 @@ class LatticeRunner(Runner):
         Visualize the env at current state
         """
         envs = self.envs
-        image = envs.render("rgb_array", num_timesteps)
-        return image
+        image,intraction_array = envs.render("rgb_array", num_timesteps)
+        return image,intraction_array
 
     def extract_buffer(self):
         """
@@ -296,6 +330,8 @@ class LatticeRunner(Runner):
         terms = []
         start_index = self.br_start_idx
         end_index = self.buffer[0].step
+        # print(end_index)
+
         # Calculate the range of indices with wrap-around
         if start_index > end_index:
             indices = list(range(start_index, self.buffer[0].buffer_size)) + list(
@@ -303,14 +339,22 @@ class LatticeRunner(Runner):
             )
         else:
             indices = list(range(start_index, end_index))
+
         # print(end_index)
         # print(indices)
+        # input()
         # print(len(indices))
         if self.algorithm_name == "DQN":
             # iterate all agents
             for br in self.buffer:
                 if self.all_args.normalize_pattern == "all":
                     episode_rwds.append([br.norm_rewards[i] for i in indices])
+                elif self.all_args.normalize_pattern == "episode":
+                    # print(indices)
+                    # print(br.episode_norm_rewards)
+                    episode_rwds.append([br.episode_norm_rewards[i] for i in indices])
+                    # print(episode_rwds)
+                    # input()
                 else:
                     episode_rwds.append([br.rewards[i] for i in indices])
                 _acts = [br.actions[i] for i in indices]
@@ -332,6 +376,7 @@ class LatticeRunner(Runner):
         log episode info
         """
         episode_rwds, episode_acts, episode_final_acts, terms = self.extract_buffer()
+        # print(episode_acts)
 
         self.calculate_strategy_roubutness(np.array(episode_acts).copy())
 
@@ -340,6 +385,10 @@ class LatticeRunner(Runner):
         # payoff for cooperator and defector
         c_p = []
         d_p = []
+        # interaction ratio for cooperation and defection
+        c_interaction=[]
+        d_interaction=[]
+
         # print(episode_info)
         # gini_value = 0
         for infos in episode_info:
@@ -347,11 +396,12 @@ class LatticeRunner(Runner):
                 if "cumulative_payoffs" in info:
                     gini_value = gini(info["cumulative_payoffs"])
 
-                for _, a in enumerate(info["individual_action"]):
-                    if a == 0:
-                        c_p.append(info["instant_payoff"][_])
-                    else:
-                        d_p.append(info["instant_payoff"][_])
+                c_p.append(info["instant_payoff"][0])
+                d_p.append(info["instant_payoff"][1])
+
+                c_interaction.append(info["strategy_based_interaction"][0])
+                d_interaction.append(info["strategy_based_interaction"][1])
+
         # reward
         episode_coop_rewards = []
         episode_defect_rewards = []
@@ -369,6 +419,12 @@ class LatticeRunner(Runner):
         train_infos["payoff/episode_payoff"] = np.mean(
             np.concatenate((c_p, d_p), axis=0)
         )
+        train_infos["interaction/cooperation_interaction_ratio"] = np.mean(c_interaction)
+        train_infos["interaction/defection_interaction_ratio"] = np.mean(d_interaction)
+        train_infos["interaction/average_interaction"] = np.mean(
+            np.concatenate((c_interaction, d_interaction), axis=0)
+        )
+
         train_infos["payoff/gini_coefficient "] = gini_value
 
         train_infos["results/coopereation_episode_rewards"] = np.mean(
@@ -434,4 +490,7 @@ class LatticeRunner(Runner):
             np.mean(strategy) / self.episode_length
             for strategy in strategy_average_robutness
         ]
-        self.best_robutness = [np.max(strategy)/ self.episode_length for strategy in strategy_best_robutness]
+        self.best_robutness = [
+            np.max(strategy) / self.episode_length
+            for strategy in strategy_best_robutness
+        ]

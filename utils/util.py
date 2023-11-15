@@ -220,3 +220,64 @@ def get_next_elements(arr, start_index, num_elements):
 def get_past_idx(start_index, array_size, num_elements):
     indices = [(start_index - i) % array_size for i in range(1, num_elements + 1)]
     return indices
+
+def convert_array_to_two_arrays(input_array):
+    # Check if all elements in the array are within the valid range (0-31)
+    if any(not (0 <= num <= 31) for num in input_array):
+        raise ValueError("All elements in the input array must be integers in the range 0-31")
+
+    # Initialize empty arrays for the first bit and second part
+    first_bits = []
+    second_parts = []
+
+    # Process each element in the input array
+    for number in input_array:
+        # Extract the first bit (0 or 1)
+        first_bit = number // 16
+
+        # Extract the second part (0-15)
+        second_part = number % 16
+
+        # Append the results to the respective arrays
+        first_bits.append(first_bit)
+        second_parts.append(second_part)
+
+    # Return two arrays with the results
+    return first_bits, second_parts
+
+def convert_arrays_to_original(first_bits, second_parts):
+    # Check if the input arrays have the same length
+    if len(first_bits) != len(second_parts):
+        raise ValueError("Input arrays must have the same length")
+
+    # Initialize an empty array for the reconstructed original array
+    original_array = []
+
+    # Combine the corresponding elements from first_bits and second_parts
+    for first_bit, second_part in zip(first_bits, second_parts):
+        # Calculate the original number
+        original_number = first_bit * 16 + second_part
+
+        # Append the original number to the array
+        original_array.append(original_number)
+
+    return original_array
+
+
+def save_array(array, save_path, filename):
+    # Convert the array to a NumPy array if it's not already
+    if not isinstance(array, np.ndarray):
+        array = np.array(array)
+
+    # Construct the full file path
+    full_path = os.path.join(save_path, filename)
+
+    # Check if the file already exists
+    if os.path.exists(full_path):
+        # If the file exists, delete it
+        os.remove(full_path)
+        # print(f"Deleted existing file at {full_path}")
+
+    # Save the array using NumPy
+    np.savez(full_path,array)
+    print(f"Array saved successfully to {full_path}")
