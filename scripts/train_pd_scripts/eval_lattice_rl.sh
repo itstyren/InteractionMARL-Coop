@@ -1,9 +1,9 @@
 #!/bin/sh
 env='Lattice'
-scenario='TestPC'
+scenario='Eval'
 algo='DQN'
-exp="E25B16"
-env_dim=10
+exp="E25B32"
+env_dim=30
 dilemma_strength=1.05
 seed_max=1
 
@@ -16,8 +16,8 @@ do
   CUDA_VISIBLE_DEVICES=0 python ../train/train_lattice.py --env_dim ${env_dim} --algorithm_name ${algo} --log_interval 1 --num_env_steps 5000 \
       --env_name ${env} --scenario_name ${scenario} --user_name 'tyren' --episode_length 10 --cuda --n_rollout_threads 2 --use_linear_lr_decay\
       --mini_batch 32 --gradient_steps 1 --dilemma_strength ${dilemma_strength}  --target_update_interval 10000 --seed ${seed} --share_policy false \
-      --experiment_name ${exp} --use_render --lr 0.1 --video_interval 1 --use_linear_beta_decay --replay_scheme 'prioritized' --learning_starts 50 \
+      --experiment_name ${exp} --use_render --save_gif --lr 0.1 --video_interval 1 --use_linear_beta_decay --replay_scheme 'prioritized' --learning_starts 50 \
       --freq_type 'step' --train_freq 8 --prioritized_replay_alpha 0.6 --buffer_size 5000 --memory_alpha 0.6 --save_interval 0  \
-      --max_files 2 --rewards_pattern 'final' --normalize_pattern 'none' --compare_reward --train_pattern 'both'  --save_result \
-# --model_dir '../results/Lattice/Test/DQN/Test/run_2023-10-31_16-43-50/models'
+      --max_files 2 --rewards_pattern 'final' --normalize_pattern 'none' --compare_reward --train_pattern 'both' \
+      --eval_mode --model_dir '../../results/Lattice/Interact/DQN/E25B32_Z/wandb/run-20231114_143803-xxychp40/files' 
 done
