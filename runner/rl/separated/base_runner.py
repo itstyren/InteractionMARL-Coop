@@ -45,6 +45,7 @@ class Runner(object):
     ):
         self.all_args = config["all_args"]
         self.envs = config["envs"]
+        self.eval_envs = config['eval_envs']
         self.device = config["device"]
         self.num_agents = config["num_agents"]
 
@@ -113,6 +114,7 @@ class Runner(object):
         self.iteract_trainer=[]
         self.buffer = []
 
+        # even policy load from file, still need initial trainer first 
         for agent_id in range(self.num_agents):
             tr = TrainAlgo(
                 all_args=self.all_args,
@@ -126,6 +128,8 @@ class Runner(object):
                 device=self.device,
                 action_flag=0 if self.all_args.train_pattern=='strategy' else 2
             )
+            self.trainer.append(tr)
+
             if self.all_args.train_interaction:
                 iteract_tr=TrainAlgo(
                     all_args=self.all_args,
@@ -141,13 +145,15 @@ class Runner(object):
                 )
                 self.iteract_trainer.append(iteract_tr)
 
-            self.trainer.append(tr)
+            
             
 
         # Restore a pre-trained model if the model directory is specified
+        have_load_buffer=False
         if self.model_dir is not None:
-            self.restore()
-        else:
+            have_load_buffer=self.restore()
+        
+        if not have_load_buffer:
             for agent_id in range(self.num_agents):
                 bu = ReplayBuffer(
                     self.all_args,
@@ -156,7 +162,7 @@ class Runner(object):
                     device=self.device,
                 )
                 self.buffer.append(bu)
-
+        
         print("\nReport Model Structure...")
         tensor_date = {}
         for key, value in self.envs.observation_spaces["agent_0"].items():
@@ -165,6 +171,8 @@ class Runner(object):
         if self.all_args.train_interaction:
             summary(self.iteract_trainer[0].policy.q_net, input_data=[tensor_date])
         print("\nStrat Training...\n")
+
+        # input()
 
         # setup callback function
         callback = None
@@ -225,10 +233,18 @@ class Runner(object):
         """
         Restoring Model
         """
-        latest_buffer_file = find_latest_file(self.model_dir, "pkl")
+        have_load_buffer=False
         latest_model_file = find_latest_file(self.model_dir, "zip")
-        self.load_replay_buffer(latest_buffer_file)
         self.load_trainer(latest_model_file)
+
+        if any(file.endswith(".pkl") for file in os.listdir(self.model_dir)):
+            latest_buffer_file = find_latest_file(self.model_dir, "pkl")
+            self.load_replay_buffer(latest_buffer_file)
+            have_load_buffer=True
+        elif self.all_args.eval_mode:
+            have_load_buffer=True
+        return have_load_buffer
+
 
     def collect_rollouts(self):
         """

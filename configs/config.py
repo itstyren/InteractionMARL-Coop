@@ -266,6 +266,12 @@ def get_config():
         default="strategy",
         help="pass a unit name of frequency type, together make tuple like (5, step) or (2, episode)",
     )    
+    parser.add_argument(
+        "--eval_mode",
+        action="store_true",
+        default=False,
+        help="when activated, the model will not pass to traing process",
+    )
 
     # run parameters
     parser.add_argument(

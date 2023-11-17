@@ -3,7 +3,7 @@ import numpy as np
 import torch
 import time
 from stable_baselines3.common.utils import should_collect_more_steps
-from utils.util import gini, consecutive_counts, convert_array_to_two_arrays,save_array
+from utils.util import gini, consecutive_counts, convert_array_to_two_arrays, save_array
 import copy
 
 
@@ -38,7 +38,7 @@ class LatticeRunner(Runner):
         episode_c_reward_during_training = []
         episode_d_reward_during_training = []
         episode_exploration_rate = []
-        interaction_log=[]
+        interaction_log = []
 
         while self.num_timesteps < self.num_env_steps:
             num_collected_steps, num_collected_episodes = 0, 0
@@ -101,17 +101,21 @@ class LatticeRunner(Runner):
 
                 # record every step for current episode
                 if self.all_args.use_render and (
-                    episode % self.video_interval == 0
-                    or episode == self.episodes - 1
-                    
+                    episode % self.video_interval == 0 or episode == self.episodes - 1
                 ):
                     # print('step:',step,'episode:',episode)
-                    image,interaction_n = self.render(self.num_timesteps)
+                    image, interaction_n = self.render(self.num_timesteps)
                     # print(interaction_n)
                     all_frames.append(image[0])
-                    if self.have_train and self.all_args.save_result and step+1==self.episode_length:
+                    if (
+                        self.have_train
+                        and self.all_args.save_result
+                        and step + 1 == self.episode_length
+                    ):
                         interaction_log.append(interaction_n)
-                        save_array(interaction_log,self.plot_dir,'agent_intraction.npz')
+                        save_array(
+                            interaction_log, self.plot_dir, "agent_intraction.npz"
+                        )
 
                 # Sample actions
                 infos = self.collect_rollouts()
@@ -317,8 +321,8 @@ class LatticeRunner(Runner):
         Visualize the env at current state
         """
         envs = self.envs
-        image,intraction_array = envs.render("rgb_array", num_timesteps)
-        return image,intraction_array
+        image, intraction_array = envs.render("rgb_array", num_timesteps)
+        return image, intraction_array
 
     def extract_buffer(self):
         """
@@ -386,8 +390,8 @@ class LatticeRunner(Runner):
         c_p = []
         d_p = []
         # interaction ratio for cooperation and defection
-        c_interaction=[]
-        d_interaction=[]
+        c_interaction = []
+        d_interaction = []
 
         # print(episode_info)
         # gini_value = 0
@@ -419,7 +423,9 @@ class LatticeRunner(Runner):
         train_infos["payoff/episode_payoff"] = np.mean(
             np.concatenate((c_p, d_p), axis=0)
         )
-        train_infos["interaction/cooperation_interaction_ratio"] = np.mean(c_interaction)
+        train_infos["interaction/cooperation_interaction_ratio"] = np.mean(
+            c_interaction
+        )
         train_infos["interaction/defection_interaction_ratio"] = np.mean(d_interaction)
         train_infos["interaction/average_interaction"] = np.mean(
             np.concatenate((c_interaction, d_interaction), axis=0)
@@ -487,10 +493,59 @@ class LatticeRunner(Runner):
                     strategy_best_robutness[target].append(duration)
 
         self.average_robutness = [
-            np.mean(strategy) / self.episode_length
+            np.mean(strategy) / self.episode_length if strategy else 0.0
             for strategy in strategy_average_robutness
         ]
         self.best_robutness = [
-            np.max(strategy) / self.episode_length
+            np.max(strategy) / self.episode_length if strategy else 0.0
             for strategy in strategy_best_robutness
         ]
+
+    def eval_run(self, eval_time=6):
+        '''
+        eval the trained model
+        :param eval_time: The totoal eval trials 
+        '''
+        
+        eval_envs = self.eval_envs
+        trials = int(eval_time/self.n_rollout_threads)
+        eval_scores = []
+        for trial in range(trials):
+            print("trail is {}".format(trial))
+            self.num_timesteps = 0
+            eval_obs, coop_level = eval_envs.reset()
+            print(
+                "====== Initial Cooperative Level {:.2f} ======".format(np.mean(coop_level))
+            )
+
+            while self.num_timesteps < self.num_env_steps:
+                actions = []
+                interactions = []
+                for agent_id in range(self.num_agents):
+                    agent_action = self.trainer[agent_id].predict(
+                        np.array(list(eval_obs[:, agent_id])),
+                    )
+                    agent_action = _t2n(agent_action)
+                    if self.all_args.train_pattern == "both":
+                        agent_action, agent_interaction = convert_array_to_two_arrays(
+                            agent_action
+                        )
+
+                    actions.append(agent_action)   
+                    if self.all_args.train_pattern == "both":
+                        interactions.append(agent_interaction) 
+
+                # print(actions,interactions)
+
+                actions=np.column_stack(actions)
+                interactions=np.column_stack(interactions) if self.all_args.train_interaction or self.all_args.train_pattern == "both" else None
+
+                # print(actions)
+                
+                if self.all_args.train_interaction or self.all_args.train_pattern=='both':
+                    combine_action=np.dstack((actions, interactions))
+                    # print(combine_action)
+                    eval_obs, eval_rewards, terminations, truncations, eval_infos = eval_envs.step(combine_action)
+                else:
+                    eval_obs, eval_rewards, terminations, truncations, eval_infos = eval_envs.step(actions)
+                self.num_timesteps += self.n_rollout_threads

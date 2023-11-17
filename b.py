@@ -902,13 +902,20 @@
 # indices = get_next_elements(list(range(array_size)), start_index, num_elements)
 # print(indices)
 
-def get_indices(start_index, array_size, num_elements):
-    indices = [(start_index - i) % array_size for i in range(1, num_elements + 1)]
-    return indices
+# def get_indices(start_index, array_size, num_elements):
+#     indices = [(start_index - i) % array_size for i in range(1, num_elements + 1)]
+#     return indices
 
-array_size = 100
-start_index = 5
-num_elements = 10
+# array_size = 100
+# start_index = 5
+# num_elements = 10
 
-result = get_indices(start_index, array_size, num_elements)
-print(result)
+# result = get_indices(start_index, array_size, num_elements)
+# print(result)
+
+# episode_acts_flattened=[
+#     [],[]
+# ]
+# episode_acts_transposed = [
+#             np.array(_).T for _ in episode_acts_flattened
+#         ] 

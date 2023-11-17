@@ -118,35 +118,16 @@ class CheckpointCallback(BaseCallback):
             if self.verbose >= 2:
                 print(f"\nSaving model checkpoint to {model_path}")
             
-            self.zip_manager.create_zip_file(model_path,self.model)
+            self.zip_manager.create_save_zip(model_path,self.model)
 
             if self.save_replay_buffer and hasattr(self.model, "buffer") and self.model.buffer is not None:
                 replay_buffer_path = self._checkpoint_path("replay_buffer_", extension="pkl")
                 self.model.save_replay_buffer(replay_buffer_path)  # type: ignore[attr-defined]
-                if self.verbose > 1:
+                if self.verbose >= 2:
                     print(f"Saving model replay buffer checkpoint to {replay_buffer_path}\n")
             else:
                 print('\n')
-            # # Create an in-memory buffer to store the .pt files
-            # buffer = io.BytesIO()
 
-            # # Create a zip file and add the .pt files to it
-            # with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zipf:
-
-            #     for agent_id in range(self.model.num_agents):
-            #         policy=self.model.trainer[agent_id].policy.q_net
-            #         pt_data = io.BytesIO()  # Create an in-memory buffer for the current .pt file
-            #         torch.save(policy.state_dict(), pt_data)
-            #         # Add the .pt data to the zip with a suitable filename
-            #         zipf.writestr(str(agent_id) + ".pt", pt_data.getvalue())     
-
-            # with open(model_path, 'wb') as zip_file:
-            #     zip_file.write(buffer.getvalue())
-
-            # # Clean up: if you want to remove the in-memory buffer
-            # buffer.close()
-
-        #     self.model.save(model_path)
         return True
 
 class ZipFileManager:
@@ -154,7 +135,7 @@ class ZipFileManager:
         self.max_zip_files = max_zip_files
         self.zip_files = []
 
-    def create_zip_file(self, zip_filename,model):
+    def create_save_zip(self, zip_filename,model):
         zip_filename = zip_filename
         buffer = io.BytesIO()
 

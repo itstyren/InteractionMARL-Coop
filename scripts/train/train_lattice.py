@@ -13,11 +13,16 @@ from stable_baselines3.common.callbacks import CheckpointCallback
 import copy
 
 
-def make_train_env(all_args, raw_env):
+def make_run_env(all_args, raw_env, env_type=0):
+    """
+    make train or eval env
+    :param evn_type: wether env for training (0) or eval (1). Setting differnt seed
+    """
+
     def get_env_fn(rank):
         def init_env():
             env = raw_env(all_args, max_cycles=all_args.episode_length)
-            env.seed(all_args.seed + rank * 1000)
+            env.seed(all_args.seed * (1 + 4999 * env_type) + rank * 1000)
             return env
 
         return init_env
@@ -65,7 +70,12 @@ if __name__ == "__main__":
         torch.set_num_threads(all_args.n_training_threads)
 
     run_dir = (
-        Path(os.path.split(os.path.split(os.path.dirname(os.path.abspath(__file__)))[0])[0] + "/results")
+        Path(
+            os.path.split(os.path.split(os.path.dirname(os.path.abspath(__file__)))[0])[
+                0
+            ]
+            + "/results"
+        )
         / all_args.env_name
         / all_args.scenario_name
         / all_args.algorithm_name
@@ -93,9 +103,14 @@ if __name__ == "__main__":
             entity=all_args.user_name,
             notes=socket.gethostname(),
             name=run_name,
-            group=all_args.scenario_name+'_'+all_args.rewards_pattern,
+            group=all_args.scenario_name + "_" + all_args.rewards_pattern,
             dir=str(run_dir),
-            job_type="r_" + str(all_args.dilemma_strength)+'_M_'+str(all_args.memory_length)+"_"+all_args.normalize_pattern,
+            job_type="r_"
+            + str(all_args.dilemma_strength)
+            + "_M_"
+            + str(all_args.memory_length)
+            + "_"
+            + all_args.normalize_pattern,
             reinit=True,
         )
     else:
@@ -131,11 +146,13 @@ if __name__ == "__main__":
     else:
         from envs.matrix_dilemma import lattice_rl_v0 as LatticeENV
 
-    envs = make_train_env(all_args, LatticeENV.raw_env)
+    envs = make_run_env(all_args, LatticeENV.raw_env, env_type=0)
+    eval_envs = make_run_env(all_args, LatticeENV.raw_env, env_type=1) if all_args.model_dir is not None else None
 
     config = {
         "all_args": all_args,
         "envs": envs,
+        "eval_envs": eval_envs,
         "num_agents": (all_args.env_dim) ** 2,
         "device": device,
         "run_dir": run_dir,
@@ -152,6 +169,17 @@ if __name__ == "__main__":
 
     runner = Runner(config)
 
-    runner.run()
-
+    if all_args.model_dir is None:
+        runner.run()
+    else:
+        runner.eval_run()
     envs.close()
+
+    # post process
+    envs.close()
+
+    if all_args.use_wandb:
+        run.finish()
+    else:
+        runner.logger.export_scalars_to_json(str(runner.log_dir + "/summary.json"))
+        runner.logger.close()

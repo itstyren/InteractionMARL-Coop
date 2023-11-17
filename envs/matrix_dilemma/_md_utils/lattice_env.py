@@ -335,7 +335,6 @@ class LatticeEnv(AECEnv):
         # Prepare info dictionary
         infos = {
             "instant_payoff": [ave_payoff_c,ave_payoff_d],
-            # "individual_action": action_n,
             "current_cooperation": coop_level,
             'strategy_based_interaction':[ave_interact_c,ave_interact_d]
         }
@@ -390,6 +389,7 @@ class LatticeEnv(AECEnv):
             self._accumulate_rewards()
 
             # if enter to final episode step
+            # print(self.steps,self.max_cycles)
             if self.steps >= self.max_cycles:
                 truncation = True
                 for a in self.agents:
