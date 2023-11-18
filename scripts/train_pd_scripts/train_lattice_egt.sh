@@ -4,7 +4,7 @@ scenario='lattice_egt'
 algo='EGT'
 exp="check"
 env_dim=50
-dilemma_strength=1.3
+dilemma_strength=1.2
 
 echo "env is ${env}, scenario is ${scenario}, algorithm name is ${algo}, exp is ${exp}"
 
