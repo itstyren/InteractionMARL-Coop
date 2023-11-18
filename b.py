@@ -919,3 +919,29 @@
 # episode_acts_transposed = [
 #             np.array(_).T for _ in episode_acts_flattened
 #         ] 
+
+def middle_and_nearby_indices(dim, radius_length):
+    assert radius_length*2<dim,f"Expected radius_length< {int(dim/2)}, but got {radius_length}"
+    middle_idx = dim // 2 * dim + dim // 2
+
+    nearby_indices = []
+
+    for i in range(-radius_length, radius_length + 1):
+        for j in range(-radius_length, radius_length + 1):
+            # Calculate the flattened index
+            index = middle_idx + i * dim + j
+
+            # Check if the index is within the bounds of the flattened list
+            if 0 <= index < dim * dim:
+                nearby_indices.append(index)
+
+    return middle_idx, nearby_indices
+
+# Example usage:
+dim = 10
+radius = 1
+
+middle_point, nearby_idxs = middle_and_nearby_indices(dim, radius)
+
+print("Middle point index:", middle_point)
+print("Nearby indices with radius {}: {}".format(radius, nearby_idxs))

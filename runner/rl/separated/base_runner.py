@@ -153,6 +153,7 @@ class Runner(object):
         if self.model_dir is not None:
             have_load_buffer=self.restore()
         
+        # The eval process doesnt need replay buffer
         if not have_load_buffer:
             for agent_id in range(self.num_agents):
                 bu = ReplayBuffer(
@@ -607,7 +608,11 @@ class Runner(object):
         """
         # Open the zip file
         with zipfile.ZipFile(path, "r") as zipf:
-            for agent_id in range(self.num_agents):
+            idx_list = np.arange(self.num_agents) 
+            # Using shuffle() method 
+            if self.all_args.eval_mode:
+                np.random.shuffle(idx_list)
+            for agent_id in idx_list:
                 # Extract data for each agent
                 agent_data = zipf.read(f"{agent_id}.pt")
                 # Load the data using torch.load

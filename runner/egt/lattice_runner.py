@@ -163,5 +163,5 @@ class LatticeRunner(Runner):
         Visualize the env at current state
         """
         envs = self.envs
-        image = envs.render("rgb_array", num_timesteps)
+        image,intraction_array = envs.render("rgb_array", num_timesteps)
         return image

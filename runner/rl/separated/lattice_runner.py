@@ -107,6 +107,7 @@ class LatticeRunner(Runner):
                     image, interaction_n = self.render(self.num_timesteps)
                     # print(interaction_n)
                     all_frames.append(image[0])
+
                     if (
                         self.have_train
                         and self.all_args.save_result
@@ -316,12 +317,18 @@ class LatticeRunner(Runner):
             )
 
     @torch.no_grad()
-    def render(self, num_timesteps):
+    def render(self, num_timesteps,render_env=0):
         """
         Visualize the env at current state
+        :param render_env: 0 render training env, 1 render eval env:
         """
-        envs = self.envs
+        if render_env==0:
+            envs = self.envs
+        else:
+            envs=self.eval_envs
+
         image, intraction_array = envs.render("rgb_array", num_timesteps)
+        # print
         return image, intraction_array
 
     def extract_buffer(self):
@@ -502,21 +509,30 @@ class LatticeRunner(Runner):
         ]
 
     def eval_run(self, eval_time=6):
-        '''
+        """
         eval the trained model
-        :param eval_time: The totoal eval trials 
-        '''
-        
+        :param eval_time: The totoal eval trials
+        """
+
         eval_envs = self.eval_envs
-        trials = int(eval_time/self.n_rollout_threads)
+        trials = int(eval_time / self.n_rollout_threads)
         eval_scores = []
         for trial in range(trials):
             print("trail is {}".format(trial))
             self.num_timesteps = 0
+            self.episodes = (
+            int(self.num_env_steps) // self.episode_length // self.n_rollout_threads)
+            self.start_time = time.time_ns()
+            self._num_timesteps_at_start=0
             eval_obs, coop_level = eval_envs.reset()
             print(
-                "====== Initial Cooperative Level {:.2f} ======".format(np.mean(coop_level))
+                "====== Initial Cooperative Level {:.2f} ======".format(
+                    np.mean(coop_level)
+                )
             )
+            step = 0
+            episode = 1
+            all_frames = []
 
             while self.num_timesteps < self.num_env_steps:
                 actions = []
@@ -531,21 +547,67 @@ class LatticeRunner(Runner):
                             agent_action
                         )
 
-                    actions.append(agent_action)   
+                    actions.append(agent_action)
                     if self.all_args.train_pattern == "both":
-                        interactions.append(agent_interaction) 
+                        interactions.append(agent_interaction)
 
                 # print(actions,interactions)
 
-                actions=np.column_stack(actions)
-                interactions=np.column_stack(interactions) if self.all_args.train_interaction or self.all_args.train_pattern == "both" else None
+                actions = np.column_stack(actions)
+                interactions = (
+                    np.column_stack(interactions)
+                    if self.all_args.train_interaction
+                    or self.all_args.train_pattern == "both"
+                    else None
+                )
 
                 # print(actions)
-                
-                if self.all_args.train_interaction or self.all_args.train_pattern=='both':
-                    combine_action=np.dstack((actions, interactions))
+
+                if (
+                    self.all_args.train_interaction
+                    or self.all_args.train_pattern == "both"
+                ):
+                    combine_action = np.dstack((actions, interactions))
                     # print(combine_action)
-                    eval_obs, eval_rewards, terminations, truncations, eval_infos = eval_envs.step(combine_action)
+                    (
+                        eval_obs,
+                        eval_rewards,
+                        terminations,
+                        truncations,
+                        eval_infos,
+                    ) = eval_envs.step(combine_action)
                 else:
-                    eval_obs, eval_rewards, terminations, truncations, eval_infos = eval_envs.step(actions)
+                    (
+                        eval_obs,
+                        eval_rewards,
+                        terminations,
+                        truncations,
+                        eval_infos,
+                    ) = eval_envs.step(actions)
                 self.num_timesteps += self.n_rollout_threads
+                step += 1
+
+                if step >= self.episode_length:
+                    self._dump_logs(episode)
+
+
+                    # self._dump_logs(episode)
+
+                    if self.all_args.use_render and (
+                        episode % self.video_interval == 0
+                        or episode == self.episodes - 1
+                    ):
+                        self.write_to_video(all_frames, episode)
+
+                    step = 0
+                    episode += 1
+                    all_frames = []
+
+                # record every step for current episode
+                if self.all_args.use_render and (
+                    episode % self.video_interval == 0 or episode == self.episodes - 1
+                ):
+                    # print('step:',step,'episode:',episode)
+                    image, interaction_n = self.render(self.num_timesteps,render_env=1)
+                    # print(interaction_n)
+                    all_frames.append(image[0])

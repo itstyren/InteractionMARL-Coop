@@ -7,8 +7,7 @@ from gymnasium import spaces
 import gymnasium
 from matplotlib import colors, cm
 import matplotlib.pyplot as plt
-import pdb
-import wandb
+
 
 
 class LatticeEnv(AECEnv):

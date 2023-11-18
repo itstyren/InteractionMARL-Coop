@@ -124,6 +124,13 @@ def get_config():
         default=False,
         help="compare reward with avaeage level",
     )
+    parser.add_argument(
+        "--init_distribution",
+        type=str,
+        choices=["random", "circle"],
+        default="random",
+        help="Initial strategy distribution should be random or a circle",
+    ) 
 
     # parser.add_argument(
     #     "--memory_length",

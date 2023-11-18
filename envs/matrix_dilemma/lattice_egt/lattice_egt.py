@@ -2,6 +2,7 @@ from envs.matrix_dilemma._md_utils.utils import (
     make_env,
     gen_lattice_neighbours,
     parallel_wrapper_fn,
+    get_central_and_nearby_indices
 )
 from envs.matrix_dilemma._md_utils.lattice_env import LatticeEnv
 from envs.matrix_dilemma._md_utils.scenario import BaseScenario
@@ -36,16 +37,20 @@ parallel_env = parallel_wrapper_fn(env)
 class Scenario(BaseScenario):
     def make_world(self, args):
         self.env_dim=args.env_dim
+        self.init_distribution=args.init_distribution
+
         agent_num = args.env_dim**2
+        
         world = World(np.array(args.initial_ratio), args.dilemma_strength)
         # add agent
         world.agents = [Agent(args) for i in range(agent_num)]
+        
 
         for i, agent in enumerate(world.agents):
             agent.name = f"agent_{i}"
             agent.index = i
-            # random initial strategy
-            agent.action.s = np.random.choice([0, 1], p=world.initial_ratio.ravel())
+
+            # agent.action.s = np.random.choice([0, 1], p=world.initial_ratio.ravel())
 
         # set neighbour index
         world.agents = gen_lattice_neighbours(world.agents)
@@ -54,12 +59,25 @@ class Scenario(BaseScenario):
         return world
 
     def reset_world(self, world):
+
+        if self.init_distribution=='circle':
+            center_idx, nearby_indices=get_central_and_nearby_indices(self.env_dim,10)
+        # print(nearby_indices)
+
         # random initial strategy
         for i, agent in enumerate(world.agents):
-            # random initial strategy
-            agent.action.s = int(
-                np.random.choice([0, 1], p=world.initial_ratio.ravel())
-            )
+            if self.init_distribution=='random':
+                # random initial strategy
+                agent.action.s = int(
+                    np.random.choice([0, 1], p=world.initial_ratio.ravel())
+                )
+            else:
+                # Assign strategy based on distance from the center
+                if np.isin(i, nearby_indices):
+                    agent.action.s = 0
+                else:
+                    agent.action.s = 1
+
 
     def reward(self, agent, world):
         """

@@ -2,6 +2,7 @@ from envs.matrix_dilemma._md_utils.utils import (
     make_env,
     gen_lattice_neighbours,
     parallel_wrapper_fn,
+    get_central_and_nearby_indices
 )
 from envs.matrix_dilemma._md_utils.lattice_env import LatticeEnv
 from envs.matrix_dilemma._md_utils.scenario import BaseScenario
@@ -41,6 +42,8 @@ class Scenario(BaseScenario):
         self.env_dim=args.env_dim
         self.train_interaction=args.train_interaction
         self.train_pattern=args.train_pattern
+        self.init_distribution=args.init_distribution
+        
         agent_num = args.env_dim**2
         world = World(np.array(args.initial_ratio), args.dilemma_strength)
         # add agent
