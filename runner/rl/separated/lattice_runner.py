@@ -162,10 +162,12 @@ class LatticeRunner(Runner):
         # reset env
         self.obs, coop_level = self.envs.reset()
         print(
-            "====== Initial Cooperative Level {:.2f} ======".format(np.mean(coop_level))
+            "====== Initial Cooperative Level {:.2f} ======".format(
+                np.mean(coop_level))
         )
         for agent_id in range(self.num_agents):
-            self.buffer[agent_id].obs[0] = np.array(list(self.obs[:, agent_id])).copy()
+            self.buffer[agent_id].obs[0] = np.array(
+                list(self.obs[:, agent_id])).copy()
 
         # total episode num
         self.episodes = (
@@ -216,7 +218,8 @@ class LatticeRunner(Runner):
                 if self.all_args.train_interaction:
                     agent_interaction = np.array(
                         [
-                            self.iteract_trainer[agent_id].policy.action_space.sample()
+                            self.iteract_trainer[agent_id].policy.action_space.sample(
+                            )
                             for _ in range(self.n_rollout_threads)
                         ]
                     )
@@ -238,7 +241,8 @@ class LatticeRunner(Runner):
                     agent_interaction = _t2n(agent_interaction)
 
             # Calculate previous base for the current agent
-            previouse_base = self._calculate_previous_base(agent_id, agent_action, step)
+            previouse_base = self._calculate_previous_base(
+                agent_id, agent_action, step)
 
             strategy_coop_based.append(previouse_base)
 
@@ -317,15 +321,15 @@ class LatticeRunner(Runner):
             )
 
     @torch.no_grad()
-    def render(self, num_timesteps,render_env=0):
+    def render(self, num_timesteps, render_env=0):
         """
         Visualize the env at current state
         :param render_env: 0 render training env, 1 render eval env:
         """
-        if render_env==0:
+        if render_env == 0:
             envs = self.envs
         else:
-            envs=self.eval_envs
+            envs = self.eval_envs
 
         image, intraction_array = envs.render("rgb_array", num_timesteps)
         # print
@@ -363,14 +367,15 @@ class LatticeRunner(Runner):
                 elif self.all_args.normalize_pattern == "episode":
                     # print(indices)
                     # print(br.episode_norm_rewards)
-                    episode_rwds.append([br.episode_norm_rewards[i] for i in indices])
+                    episode_rwds.append(
+                        [br.episode_norm_rewards[i] for i in indices])
                     # print(episode_rwds)
                     # input()
                 else:
                     episode_rwds.append([br.rewards[i] for i in indices])
                 _acts = [br.actions[i] for i in indices]
                 episode_acts.append(_acts)
-                episode_final_acts.append(_acts[-(len(_acts) // 20) :])
+                episode_final_acts.append(_acts[-(len(_acts) // 20):])
                 terms.append(
                     np.count_nonzero([br.termination[i] for i in indices])
                     / self.episode_length
@@ -379,7 +384,8 @@ class LatticeRunner(Runner):
             for br in self.buffer:
                 episode_rwds.append(br.norm_rewards)
                 episode_acts.append(br.actions)
-                terms.append(np.count_nonzero(br.termination) / br.termination.size)
+                terms.append(np.count_nonzero(
+                    br.termination) / br.termination.size)
         return episode_rwds, episode_acts, episode_final_acts, terms
 
     def log_episode(self, episode, train_infos, episode_info, extra_info):
@@ -418,7 +424,8 @@ class LatticeRunner(Runner):
         episode_defect_rewards = []
         # print(episode_rwds)
         for r, a in zip(
-            np.array(episode_rwds).flatten().round(2), np.array(episode_acts).flatten()
+            np.array(episode_rwds).flatten().round(
+                2), np.array(episode_acts).flatten()
         ):
             if a == 0:
                 episode_coop_rewards.append(r)
@@ -433,7 +440,8 @@ class LatticeRunner(Runner):
         train_infos["interaction/cooperation_interaction_ratio"] = np.mean(
             c_interaction
         )
-        train_infos["interaction/defection_interaction_ratio"] = np.mean(d_interaction)
+        train_infos["interaction/defection_interaction_ratio"] = np.mean(
+            d_interaction)
         train_infos["interaction/average_interaction"] = np.mean(
             np.concatenate((c_interaction, d_interaction), axis=0)
         )
@@ -449,7 +457,8 @@ class LatticeRunner(Runner):
         train_infos["results/average_episode_rewards"] = np.mean(episode_rwds)
         # print(episode_acts)
         # print(len(episode_acts))
-        train_infos["results/episode_cooperation_level"] = 1 - np.mean(episode_acts)
+        train_infos["results/episode_cooperation_level"] = 1 - \
+            np.mean(episode_acts)
         train_infos["results/episode_final_cooperation_performance"] = 1 - np.mean(
             episode_final_acts
         )
@@ -521,9 +530,9 @@ class LatticeRunner(Runner):
             print("trail is {}".format(trial))
             self.num_timesteps = 0
             self.episodes = (
-            int(self.num_env_steps) // self.episode_length // self.n_rollout_threads)
+                int(self.num_env_steps) // self.episode_length // self.n_rollout_threads)
             self.start_time = time.time_ns()
-            self._num_timesteps_at_start=0
+            self._num_timesteps_at_start = 0
             eval_obs, coop_level = eval_envs.reset()
             print(
                 "====== Initial Cooperative Level {:.2f} ======".format(
@@ -539,8 +548,7 @@ class LatticeRunner(Runner):
                 interactions = []
                 for agent_id in range(self.num_agents):
                     agent_action = self.trainer[agent_id].predict(
-                        np.array(list(eval_obs[:, agent_id])),
-                    )
+                        np.array(list(eval_obs[:, agent_id])))
                     agent_action = _t2n(agent_action)
                     if self.all_args.train_pattern == "both":
                         agent_action, agent_interaction = convert_array_to_two_arrays(
@@ -590,7 +598,6 @@ class LatticeRunner(Runner):
                 if step >= self.episode_length:
                     self._dump_logs(episode)
 
-
                     # self._dump_logs(episode)
 
                     if self.all_args.use_render and (
@@ -608,6 +615,7 @@ class LatticeRunner(Runner):
                     episode % self.video_interval == 0 or episode == self.episodes - 1
                 ):
                     # print('step:',step,'episode:',episode)
-                    image, interaction_n = self.render(self.num_timesteps,render_env=1)
+                    image, interaction_n = self.render(
+                        self.num_timesteps, render_env=1)
                     # print(interaction_n)
                     all_frames.append(image[0])

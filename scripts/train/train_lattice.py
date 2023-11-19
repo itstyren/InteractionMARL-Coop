@@ -143,6 +143,8 @@ if __name__ == "__main__":
     # env init
     if all_args.algorithm_name == "EGT":
         from envs.matrix_dilemma import lattice_egt_v0 as LatticeENV
+    elif all_args.algorithm_name == "Combine":
+        from envs.matrix_dilemma import lattice_combine_v0 as LatticeENV
     else:
         from envs.matrix_dilemma import lattice_rl_v0 as LatticeENV
 
@@ -160,6 +162,8 @@ if __name__ == "__main__":
 
     if all_args.algorithm_name == "EGT":
         from runner.egt.lattice_runner import LatticeRunner as Runner
+    elif all_args.algorithm_name == "Combine":
+        from runner.combine.lattice_runner import LatticeRunner as Runner
     else:
         # run experiments
         if all_args.share_policy:

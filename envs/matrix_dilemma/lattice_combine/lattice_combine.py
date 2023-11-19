@@ -40,6 +40,7 @@ class Scenario(BaseScenario):
                                           
     def make_world(self, args):
         self.env_dim=args.env_dim
+        self.eval_dim=args.eval_dim
         self.train_interaction=args.train_interaction
         self.train_pattern=args.train_pattern
         self.init_distribution=args.init_distribution
@@ -66,21 +67,16 @@ class Scenario(BaseScenario):
         """
         random initial strategy and memory
         """
-        if self.init_distribution=='circle':
-            center_idx, nearby_indices=get_central_and_nearby_indices(self.env_dim,10)
+        center_idx, nearby_indices=get_central_and_nearby_indices(self.env_dim,self.eval_dim)
 
         for i, agent in enumerate(world.agents):
-            if self.init_distribution=='random':
-                # random initial strategy
-                agent.action.s = int(
-                    np.random.choice([0, 1], p=world.initial_ratio.ravel())
-                )
+            # Assign strategy based on distance from the center
+            if np.isin(i, nearby_indices):
+                agent.action.s = 0
             else:
-                # Assign strategy based on distance from the center
-                if np.isin(i, nearby_indices):
-                    agent.action.s = 0
-                else:
-                    agent.action.s = 1
+                agent.action.s = 1
+                agent.type='EGT'
+
             # set interaction action                        
             agent.action.ia=[1,1,1,1]
             agent.init_memory(world.initial_ratio)
@@ -130,19 +126,20 @@ class Scenario(BaseScenario):
 
         :return obs (list): current neighbour strategy list, neighbour reward list
         """
-        for _,n_i in enumerate(agent.neighbours):
-            agent_idx_in_neighbour=world.agents[n_i].neighbours.index(agent.index)
-            agent.neighbours_act_m[_].append(world.agents[n_i].action.s)
-            agent.neighbours_intaction_m[_].append(world.agents[n_i].action.ia[agent_idx_in_neighbour])
-            agent.intaction_m[_].append(agent.action.ia[_])
 
-
-        flat_neighbours_act_m = np.concatenate([list(d) for d in agent.neighbours_act_m])
-        flat_neighbours_intaction_m=np.concatenate([list(d) for d in agent.neighbours_intaction_m])
-        flat_intaction_m=np.concatenate([list(d) for d in agent.intaction_m])
 
         agent.self_act_m.append(agent.action.s)
-        if self.train_interaction or self.train_pattern:
+        if agent.type=='RL':
+            for _,n_i in enumerate(agent.neighbours):
+                agent_idx_in_neighbour=world.agents[n_i].neighbours.index(agent.index)
+                agent.neighbours_act_m[_].append(world.agents[n_i].action.s)
+                agent.neighbours_intaction_m[_].append(world.agents[n_i].action.ia[agent_idx_in_neighbour])
+                agent.intaction_m[_].append(agent.action.ia[_])
+
+
+            flat_neighbours_act_m = np.concatenate([list(d) for d in agent.neighbours_act_m])
+            flat_neighbours_intaction_m=np.concatenate([list(d) for d in agent.neighbours_intaction_m])
+            flat_intaction_m=np.concatenate([list(d) for d in agent.intaction_m])
             obs={
                 'n_s':flat_neighbours_act_m,
                 'p_a':agent.self_act_m,
@@ -152,11 +149,21 @@ class Scenario(BaseScenario):
 
             }
         else:
-            obs={
-                'n_s':flat_neighbours_act_m,
-                'p_a':agent.self_act_m,
-                'p_r':agent.past_reward,
+            neighbour_strategy = []
+            neighbour_reward = []
+            neighbour_index=[]
 
-            }            
-        # print(obs)
+            for n_i in agent.neighbours:
+                neighbour_index.append(world.agents[n_i].index)
+                neighbour_strategy.append(world.agents[n_i].action.s)
+                neighbour_reward.append([world.agents[n_i].reward])
+
+            arr = np.column_stack((neighbour_strategy)).astype(object)
+          
+            arr[:, 0] = arr[:, 0].astype(int)
+            obs={
+                'n_i':neighbour_index,
+                'n_s':neighbour_strategy,
+                'n_r':neighbour_reward
+            }
         return obs

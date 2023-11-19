@@ -63,7 +63,6 @@ class Runner(object):
             bu = Buffer(
                 self.all_args,
                 self.envs.observation_spaces[f"agent_{agent_id}"],
-                self.envs.action_spaces[f"agent_{agent_id}"],
             )
             self.trainer.append(tr)
             self.buffer.append(bu)

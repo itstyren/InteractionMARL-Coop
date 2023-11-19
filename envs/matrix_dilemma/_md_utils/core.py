@@ -24,6 +24,8 @@ class Agent:  # properties of agent entities
         # the maximum action store in agent memory
         self.memory_alpha=args.memory_alpha
         self.memory_lenght=args.memory_length
+        # wether RL or EGT agent
+        self.type='RL'
 
         # # memory of neighbour action
         # self.neighbours_act_m = deque(maxlen=self.memory_lenght)
@@ -35,6 +37,7 @@ class Agent:  # properties of agent entities
         self.neighbours_act_m = [
             deque(
                 [
+                    # np.random.choice([0, 1], p=initial_ratio.ravel())
                     np.random.choice([0, 1], p=initial_ratio.ravel())
                     for _ in range(self.memory_lenght)
                 ],

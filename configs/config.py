@@ -73,7 +73,7 @@ def get_config():
     # algorithm config
     parser.add_argument(
         "--algorithm_name",
-        choices=["EGT", "DQN", "DQN1"],
+        choices=["EGT", "DQN", "Combine"],
         default="EGT",
         help="Algorithm to train agents.",
     )
@@ -91,6 +91,12 @@ def get_config():
         type=int,
         default=10,
         help="the dim size (dim*dim) of the agent network",
+    )
+    parser.add_argument(
+        "--eval_dim",
+        type=int,
+        default=5,
+        help="the radius length for instered trained agent",
     )
     parser.add_argument(
         "--dilemma_strength",

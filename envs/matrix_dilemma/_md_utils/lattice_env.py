@@ -163,7 +163,7 @@ class LatticeEnv(AECEnv):
         self.agents = self.possible_agents[:]
         self.rewards = {name: 0.0 for name in self.agents}
         self.current_actions = [agent.action.s for agent in self.world.agents]
-        self.current_interaction = [15 for agent in self.world.agents]
+        self.current_interaction = [15 for agent in self.world.agents] # 15 mean interact with all neighbour
         self._cumulative_rewards = {name: 0.0 for name in self.agents}
         self.terminations = {name: False for name in self.agents}
         self.truncations = {name: False for name in self.agents}
@@ -419,14 +419,14 @@ class LatticeEnv(AECEnv):
 
         # Define color map for rendering
         # color_set = np.array(["#0c056d",'#3c368a','#6d69a7','#9d9bc4','#cecde1','#ffe7e7','#ffd0d0','#ff7272','#ff4242', "#ff1414"])
-        color_set = np.array(["#0c056d", "#ff1414"])
+        color_set = np.array(["#0c056d",'#eaeaea',"#ff1414"])
 
         # cmap = colors.ListedColormap([color_set[0], color_set[1],color_set[2],color_set[3],color_set[4],color_set[5],color_set[6],color_set[7]])
         cmap = colors.ListedColormap(np.array(["#0c056d", "red"]))
         # Create the colormap
         if self.args.train_interaction or self.args.train_pattern == "both":
             cmap_interact = colors.LinearSegmentedColormap.from_list(
-                "my_list", color_set, N=10
+                "my_list", color_set, N=9
             )
             # cmap = colors.ListedColormap([color_set[0],color_set[0], color_set[1],color_set[2],color_set[3],color_set[4],color_set[5],color_set[6],color_set[7],color_set[8]])
             # cmap_interact = colors.ListedColormap(color_set)
@@ -434,7 +434,7 @@ class LatticeEnv(AECEnv):
             # norm = colors.BoundaryNorm(bounds, cmap.N)
 
         else:
-            cmap = colors.ListedColormap([color_set[0], color_set[1]])
+            cmap = colors.ListedColormap(np.array(["#0c056d", "red"]))
             bounds = [0, 1, 2]
             norm = colors.BoundaryNorm(bounds, cmap.N)
 

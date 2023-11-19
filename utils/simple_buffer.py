@@ -1,13 +1,11 @@
 
 import numpy as np
-from .util import get_shape_from_obs_space, get_shape_from_act_space
 from stable_baselines3.common.preprocessing import get_action_dim, get_obs_shape
 
 class Buffer(object):
-    def __init__(self, args, obs_space, act_space):
+    def __init__(self, args, obs_space):
         self.episode_length = args.episode_length
         self.n_rollout_threads = args.n_rollout_threads
-
         self.obs_shape = get_obs_shape(obs_space)
 
         self.obs = np.array(
@@ -25,6 +23,10 @@ class Buffer(object):
         self.step = 0
 
     def insert(self, obs,reward):
+        '''
+        insert data into buffer
+        '''
+
         self.obs[self.step + 1] = obs.copy()
         self.rewards[self.step] = reward
         # print(reward)

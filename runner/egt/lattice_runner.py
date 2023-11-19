@@ -112,15 +112,10 @@ class LatticeRunner(Runner):
 
     def insert(self, data):
         obs,actions,rewards = data
-        # print(obs)
-        # for a,r in zip(actions,rewards):
-        #     print(a,r)
         for agent_id in range(self.num_agents):
-            # print(obs,rewards)
+
             self.buffer[agent_id].insert(np.array(obs[agent_id]),rewards[agent_id])
-            # if agent_id==10:
-            #     print('==============insert payoff obs')
-            #     print(self.buffer[agent_id].obs) 
+
 
     def compute(self):
         pass

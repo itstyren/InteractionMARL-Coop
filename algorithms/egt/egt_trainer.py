@@ -23,7 +23,7 @@ class EGT:
         train_info = {}
         obs=buffer.obs[-1][-1]
         reward=buffer.rewards[-1][-1][0]
-
+        # print(obs,reward,self_index)
         # log current reward and strategy     
         train_info['reward']=float(reward)
         
@@ -35,14 +35,18 @@ class EGT:
         # print('=====')
 
         # = int(np.random.randint(0, len(obs[1:])))+1
-        if np.random.rand() < self.p_i_2_j(reward, obs['n_r'][n_index][0]):
+        # print(actions[self_index],actions[n_index_global])
+        # print(reward, obs['n_r'][n_index][0])
+        if np.random.rand() < self.p_i_2_j(reward, obs['n_r'][n_index][0]) and actions[self_index]!=actions[n_index_global]:
+            # print(actions[self_index],actions[n_index_global])
+
             train_info['new_strategy']=int(obs['n_s'][n_index])
             # print(n_index,n_index_global)
             # print(obs)
             # print('reward:',reward,obs['n_r'][n_index][0])
             # print('strategy:',actions[self_index],actions[n_index_global])
             # input()
-            train_info['new_strategy']=actions[n_index_global]
+            # train_info['new_strategy']=actions[n_index_global]
             # actions[self_index]=actions[n_index_global]
         return train_info,actions
     

@@ -155,6 +155,14 @@ class DummyVecEnv(ShareVecEnv):
         else:
             raise NotImplementedError
 
+    def get_actions(self):
+        actions=[]
+        for agent in self.env.world.agents:
+            actions.append(agent.action.s)
+        return actions     
+
+
+
 class SubprocVecEnv(ShareVecEnv):
     def __init__(self, env_fns, spaces=None):
         """
@@ -218,8 +226,13 @@ class SubprocVecEnv(ShareVecEnv):
         if mode == "rgb_array":   
             results = [remote.recv() for remote in self.remotes]
             frame,intraction_array=zip(*results)
-            return np.stack(frame),np.stack(intraction_array) 
-        
+            return np.stack(frame),np.stack(intraction_array)
+         
+    def get_actions(self):
+        for remote in self.remotes:
+            remote.send(('get_actions', None))
+        results = [remote.recv() for remote in self.remotes]
+        return results        
 
 def worker(remote, parent_remote, env_fn_wrapper):
     parent_remote.close()
@@ -261,5 +274,11 @@ def worker(remote, parent_remote, env_fn_wrapper):
             break
         elif cmd == 'get_spaces':
             remote.send((env.observation_spaces, env.action_spaces))
+        elif cmd == 'get_actions':
+            actions=[]
+            for agent in env.world.agents:
+                actions.append(agent.action.s)
+
+            remote.send(actions)
         else:
             raise NotImplementedError
