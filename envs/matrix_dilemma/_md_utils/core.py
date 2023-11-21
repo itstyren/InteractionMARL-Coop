@@ -8,7 +8,7 @@ class Action:  # action of the agent
         # strategy action
         self.s = None
         # inteaction action, 1-interaction 0-no interaction
-        self.ia = [1,1,1,1]
+        self.ia = None
 
 
 class Agent:  # properties of agent entities
@@ -47,10 +47,11 @@ class Agent:  # properties of agent entities
         ]
         self.neighbours_intaction_m = [
             deque(
-                [
-                    1
-                    for _ in range(self.memory_lenght)
-                ],
+                # [
+                #     1
+                #     for _ in range(self.memory_lenght)
+                # ],
+                np.random.randint(2, size=self.memory_lenght),
                 maxlen=self.memory_lenght,
             )
             for _ in range(len(self.neighbours))
@@ -58,10 +59,11 @@ class Agent:  # properties of agent entities
 
         self.intaction_m = [
             deque(
-                [
-                    1
-                    for _ in range(self.memory_lenght)
-                ],
+                # [
+                #     1
+                #     for _ in range(self.memory_lenght)
+                # ],
+                np.random.randint(2, size=self.memory_lenght),
                 maxlen=self.memory_lenght,
             )
             for _ in range(len(self.neighbours))

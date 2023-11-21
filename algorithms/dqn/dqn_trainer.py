@@ -249,7 +249,9 @@ class Strategy_DQN(BaseAlgorithm):
                         else:
                             train_rewards[i]=None
                             
-            # print(replay_data.actions,self.action_flag)
+            # print(acts)
+            # print(intacts)
+            # print('=====')
             # print(self.gamma * next_q_values)
             # print(replay_data.dones)
             # print('next_q:',next_q_values)

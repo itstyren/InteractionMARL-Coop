@@ -82,7 +82,7 @@ class Scenario(BaseScenario):
                 else:
                     agent.action.s = 1
             # set interaction action                        
-            agent.action.ia=[1,1,1,1]
+            agent.action.ia=np.random.randint(2, size=4)
             agent.init_memory(world.initial_ratio)
 
     def reward(self, agent, world):

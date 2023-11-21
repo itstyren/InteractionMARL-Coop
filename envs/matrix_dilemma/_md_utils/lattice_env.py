@@ -163,7 +163,7 @@ class LatticeEnv(AECEnv):
         self.agents = self.possible_agents[:]
         self.rewards = {name: 0.0 for name in self.agents}
         self.current_actions = [agent.action.s for agent in self.world.agents]
-        self.current_interaction = [15 for agent in self.world.agents] # 15 mean interact with all neighbour
+        self.current_interaction = [np.random.randint(16) for agent in self.world.agents] # 15 mean interact with all neighbour
         self._cumulative_rewards = {name: 0.0 for name in self.agents}
         self.terminations = {name: False for name in self.agents}
         self.truncations = {name: False for name in self.agents}
@@ -511,13 +511,16 @@ class LatticeEnv(AECEnv):
         for agent in self.world.agents:
             interaction_time = 0
             for _, n_idx in enumerate(agent.neighbours):
-                if (
-                    agent.action.ia[_] == 1
-                    and self.world.agents[n_idx].action.ia[
+                # if (
+                #     agent.action.ia[_] == 1
+                #     and self.world.agents[n_idx].action.ia[
+                #         self.world.agents[n_idx].neighbours.index(agent.index)
+                #     ]
+                #     == 1
+                # ):
+                if self.world.agents[n_idx].action.ia[
                         self.world.agents[n_idx].neighbours.index(agent.index)
-                    ]
-                    == 1
-                ):
+                    ]== 1:                    
                     interaction_time += 1
 
             interaction_n.append(interaction_time)
