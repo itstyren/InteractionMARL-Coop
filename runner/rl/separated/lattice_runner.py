@@ -208,14 +208,14 @@ class LatticeRunner(Runner):
                     ]
                 )
                 # print(agent_action)
-                if self.all_args.train_pattern == "both":
+                if self.all_args.train_pattern == "together":
                     agent_action, agent_interaction = convert_array_to_two_arrays(
                         agent_action
                     )
                 # print(agent_action)
                 # print(agent_interaction)
                 # print('=====')
-                if self.all_args.train_interaction:
+                if self.all_args.train_pattern == "seperate":
                     agent_interaction = np.array(
                         [
                             self.iteract_trainer[agent_id].policy.action_space.sample(
@@ -229,12 +229,13 @@ class LatticeRunner(Runner):
                     self.buffer[agent_id].obs[step]
                 )
                 agent_action = _t2n(agent_action)
-                if self.all_args.train_pattern == "both":
+                if self.all_args.train_pattern == "together":
                     agent_action, agent_interaction = convert_array_to_two_arrays(
                         agent_action
                     )
                 # wwether
-                if self.all_args.train_interaction:
+                if self.all_args.train_pattern == "seperate":
+                    # print(self.buffer[agent_id].obs[step])
                     agent_interaction = self.iteract_trainer[agent_id].predict(
                         self.buffer[agent_id].obs[step]
                     )
@@ -254,13 +255,14 @@ class LatticeRunner(Runner):
             exploration_rate, target_update = self.trainer[agent_id]._on_step()
             exploration_rates.append(exploration_rate)
 
-            if self.all_args.train_interaction:
+            if self.all_args.train_pattern == "seperate":
                 self.iteract_trainer[agent_id]._update_current_progress_remaining(
                     self.num_timesteps, self.num_env_steps
                 )
                 _, _ = self.iteract_trainer[agent_id]._on_step()
-            elif self.all_args.train_pattern == "both":
+            if self.all_args.train_pattern != "strategy":
                 interactions.append(agent_interaction)
+            # print(agent_interaction)    
 
         # Calculate the average strategy based on cooperation for all agents
         self.avg_strategy_coop_based = np.nanmean(strategy_coop_based, axis=0)
@@ -271,7 +273,7 @@ class LatticeRunner(Runner):
         return (
             np.column_stack(actions),
             np.column_stack(interactions)
-            if self.all_args.train_interaction or self.all_args.train_pattern == "both"
+            if self.all_args.train_pattern == "together" or self.all_args.train_pattern == "seperate"
             else None,
         )
 
@@ -286,6 +288,7 @@ class LatticeRunner(Runner):
             # Calculate cooperation proportion
             coop_proportion = (len(act) - np.count_nonzero(act)) / len(act)
             # Append cooperation proportion to the corresponding strategy
+            # previouse_base(env_idx)
             previouse_base[agent_action[env_idx]].append(coop_proportion)
 
         # Calculate the average cooperation proportion for each strategy
@@ -315,8 +318,7 @@ class LatticeRunner(Runner):
                 truncation,
                 actions[:, agent_id],
                 interactions[:, agent_id]
-                if self.all_args.train_interaction
-                or self.all_args.train_pattern == "both"
+                if self.all_args.train_pattern == "together" or self.all_args.train_pattern == "seperate"
                 else [],
             )
 
@@ -550,13 +552,13 @@ class LatticeRunner(Runner):
                     agent_action = self.trainer[agent_id].predict(
                         np.array(list(eval_obs[:, agent_id])))
                     agent_action = _t2n(agent_action)
-                    if self.all_args.train_pattern == "both":
+                    if self.all_args.train_pattern == "together":
                         agent_action, agent_interaction = convert_array_to_two_arrays(
                             agent_action
                         )
 
                     actions.append(agent_action)
-                    if self.all_args.train_pattern == "both":
+                    if self.all_args.train_pattern == "together":
                         interactions.append(agent_interaction)
 
                 # print(actions,interactions)
@@ -564,16 +566,14 @@ class LatticeRunner(Runner):
                 actions = np.column_stack(actions)
                 interactions = (
                     np.column_stack(interactions)
-                    if self.all_args.train_interaction
-                    or self.all_args.train_pattern == "both"
+                    if self.all_args.train_pattern == "together" or self.all_args.train_pattern == "seperate"
                     else None
                 )
 
                 # print(actions)
 
                 if (
-                    self.all_args.train_interaction
-                    or self.all_args.train_pattern == "both"
+                    self.all_args.train_pattern == "together" or self.all_args.train_pattern == "seperate"
                 ):
                     combine_action = np.dstack((actions, interactions))
                     # print(combine_action)

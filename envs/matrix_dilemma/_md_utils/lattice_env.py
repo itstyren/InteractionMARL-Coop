@@ -60,6 +60,7 @@ class LatticeEnv(AECEnv):
         # set spaces
         self.action_spaces = dict()
         self.observation_spaces = dict()
+        self.interact_observation_spaces = dict()
         for agent in self.world.agents:
             # set action_spaces
             if self.continuous_actions:
@@ -70,7 +71,8 @@ class LatticeEnv(AECEnv):
                 # strategy type 0 or 1
                 self.action_spaces[agent.name] = [
                     spaces.Discrete(2),
-                    spaces.Discrete(2**4),
+                    spaces.Discrete(2),
+                    # spaces.Discrete(2**4),
                     spaces.Discrete(2 * (2**4)),
                 ]
                 # self.action_spaces[agent.name] = spaces.MultiDiscrete(
@@ -93,7 +95,7 @@ class LatticeEnv(AECEnv):
                     }
                 )
             else:
-                if self.args.train_interaction or self.args.train_pattern == "both":
+                if self.args.train_pattern == "together" or self.args.train_pattern == "seperate":
                     self.observation_spaces[agent.name] = spaces.Dict(
                         {
                             "n_s": spaces.MultiDiscrete(
@@ -108,6 +110,23 @@ class LatticeEnv(AECEnv):
                             ),  # Discrete 2 - interact 1 no_interact 0
                             "p_interact": spaces.MultiDiscrete(
                                 np.full((4 * self.args.memory_length), 2)
+                            ),
+                        }
+                    )
+                    self.interact_observation_spaces[agent.name] = spaces.Dict(
+                        {
+                            "n_s": spaces.MultiDiscrete(
+                                np.full((self.args.memory_length), 2)
+                            ),  #  Discrete 2 - Coop[0], Defection[1]
+                            "p_a": spaces.MultiDiscrete([2] * self.args.memory_length),
+                            "p_r": spaces.Box(
+                                low=-5, high=5, shape=(self.args.memory_length, 1)
+                            ),
+                            "n_interact": spaces.MultiDiscrete(
+                                np.full((self.args.memory_length), 2)
+                            ),  # Discrete 2 - interact 1 no_interact 0
+                            "p_interact": spaces.MultiDiscrete(
+                                np.full((self.args.memory_length), 2)
                             ),
                         }
                     )
@@ -213,7 +232,7 @@ class LatticeEnv(AECEnv):
             # action_n.append(action)
             self._set_action(action, agent)
 
-            if self.args.train_interaction or self.args.train_pattern == "both":
+            if self.args.train_pattern == "together" or self.args.train_pattern == "seperate":
                 interaction = self.current_interaction[i]
                 self._set_interaction(interaction, agent)
 
@@ -424,7 +443,7 @@ class LatticeEnv(AECEnv):
         # cmap = colors.ListedColormap([color_set[0], color_set[1],color_set[2],color_set[3],color_set[4],color_set[5],color_set[6],color_set[7]])
         cmap = colors.ListedColormap(np.array(["#0c056d", "red"]))
         # Create the colormap
-        if self.args.train_interaction or self.args.train_pattern == "both":
+        if self.args.train_pattern == "together" or self.args.train_pattern == "seperate":
             cmap_interact = colors.LinearSegmentedColormap.from_list(
                 "my_list", color_set, N=9
             )
@@ -445,7 +464,7 @@ class LatticeEnv(AECEnv):
         action_n = np.array(self.current_actions).reshape(
             self.scenario.env_dim, self.scenario.env_dim
         )
-        if self.args.train_interaction or self.args.train_pattern == "both":
+        if self.args.train_pattern == "together" or self.args.train_pattern == "seperate":
             interaction_n = self.count_effective_interaction()
 
             # Modify interaction_n based on action_n
@@ -457,7 +476,7 @@ class LatticeEnv(AECEnv):
             i_n = i_n.reshape(self.scenario.env_dim, self.scenario.env_dim)
 
         # Create a subplot for rendering
-        if self.args.train_interaction or self.args.train_pattern == "both":
+        if self.args.train_pattern == "together" or self.args.train_pattern == "seperate":
             fig, axs = plt.subplots(1, 2, figsize=(6, 3))
             for idx, ax in enumerate(axs.flat):
                 # im = ax.imshow(action_n, cmap=cmap, alpha=scaled_interaction_n,norm=norm)

@@ -181,7 +181,8 @@ class SubprocVecEnv(ShareVecEnv):
             remote.close()
 
         self.remotes[0].send(('get_spaces', None))
-        observation_spaces, action_spaces = self.remotes[0].recv()
+        observation_spaces,interact_observation_spaces, action_spaces = self.remotes[0].recv()
+        self.interact_observation_spaces=interact_observation_spaces
         ShareVecEnv.__init__(self, len(env_fns), observation_spaces, action_spaces)
 
     def step_async(self, actions):
@@ -273,7 +274,7 @@ def worker(remote, parent_remote, env_fn_wrapper):
             remote.close()
             break
         elif cmd == 'get_spaces':
-            remote.send((env.observation_spaces, env.action_spaces))
+            remote.send((env.observation_spaces, env.interact_observation_spaces,env.action_spaces))
         elif cmd == 'get_actions':
             actions=[]
             for agent in env.world.agents:

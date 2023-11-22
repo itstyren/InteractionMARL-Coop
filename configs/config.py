@@ -266,16 +266,9 @@ def get_config():
         default=[32, 32],
         help="The number and size of each layer",
     )
-    # run parameters
-    parser.add_argument(
-        "--train_interaction",
-        action="store_true",
-        default=False,
-        help="use a linear schedule on the learning rate",
-    )
     parser.add_argument(
         "--train_pattern",
-        choices=["strategy", "both"],
+        choices=["strategy", "together",'seperate'],
         default="strategy",
         help="pass a unit name of frequency type, together make tuple like (5, step) or (2, episode)",
     )    

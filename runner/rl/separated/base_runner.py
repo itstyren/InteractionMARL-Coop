@@ -126,11 +126,11 @@ class Runner(object):
                 prioritized_replay_beta=self.beta,
                 prioritized_replay_eps=self.all_args.prioritized_replay_eps,
                 device=self.device,
-                action_flag=0 if self.all_args.train_pattern=='strategy' else 2
+                action_flag=0 if self.all_args.train_pattern=='strategy' or self.all_args.train_pattern=='seperate' else 2
             )
             self.trainer.append(tr)
 
-            if self.all_args.train_interaction:
+            if self.all_args.train_pattern == "seperate":
                 iteract_tr=TrainAlgo(
                     all_args=self.all_args,
                     logger=self.logger,
@@ -169,7 +169,9 @@ class Runner(object):
         for key, value in self.envs.observation_spaces["agent_0"].items():
             tensor_date[key] = torch.tensor(value.sample(), device=self.device)
         summary(self.trainer[0].policy.q_net, input_data=[tensor_date])
-        if self.all_args.train_interaction:
+        if self.all_args.train_pattern == "seperate":
+            # for key, value in self.envs.interact_observation_spaces["agent_0"].items():
+            #     tensor_date[key] = torch.tensor(value.sample(), device=self.device)
             summary(self.iteract_trainer[0].policy.q_net, input_data=[tensor_date])
         print("\nStrat Training...\n")
 
@@ -256,7 +258,7 @@ class Runner(object):
         # print(actions,interactions)
         
         # one step to environment
-        if self.all_args.train_interaction or self.all_args.train_pattern=='both':
+        if self.all_args.train_pattern == "together" or self.all_args.train_pattern == "seperate":
             combine_action=np.dstack((actions, interactions))
             next_obs, rews, terminations, truncations, infos = self.envs.step(combine_action)
         else:
@@ -290,7 +292,7 @@ class Runner(object):
         """
         train_infos = []
         for agent_id in torch.randperm(self.num_agents):
-            if self.all_args.train_pattern == 'both':
+            if self.all_args.train_pattern == 'together':
                 ti = self.trainer[agent_id].train(
                 batch_size=self.all_args.mini_batch, replay_buffer=self.buffer[agent_id],action_flag=2
             )
@@ -298,7 +300,7 @@ class Runner(object):
                 ti = self.trainer[agent_id].train(
                     batch_size=self.all_args.mini_batch, replay_buffer=self.buffer[agent_id],action_flag=0
                 )
-            if self.all_args.train_interaction:
+            if self.all_args.train_pattern == 'seperate':
                 self.iteract_trainer[agent_id].train(
                     batch_size=self.all_args.mini_batch, replay_buffer=self.buffer[agent_id],action_flag=1
                 )

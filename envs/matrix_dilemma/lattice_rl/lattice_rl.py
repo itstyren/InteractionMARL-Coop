@@ -40,7 +40,6 @@ class Scenario(BaseScenario):
                                           
     def make_world(self, args):
         self.env_dim=args.env_dim
-        self.train_interaction=args.train_interaction
         self.train_pattern=args.train_pattern
         self.init_distribution=args.init_distribution
         
@@ -99,7 +98,7 @@ class Scenario(BaseScenario):
             #     agent.action.ia[neighbout_idx]=0
             # else:
             #     agent.action.ia[neighbout_idx]=1
-            if self.train_interaction or self.train_pattern=='both':
+            if self.train_pattern == "together" or self.train_pattern == "seperate":
                 if agent.action.ia[neighbout_idx]==1 and world.agents[j].action.ia[world.agents[j].neighbours.index(agent.index)]==1:
                     reward += world.payoff_matrix[agent.action.s, world.agents[j].action.s]
             else:
@@ -142,7 +141,7 @@ class Scenario(BaseScenario):
         flat_intaction_m=np.concatenate([list(d) for d in agent.intaction_m])
 
         agent.self_act_m.append(agent.action.s)
-        if self.train_interaction or self.train_pattern:
+        if self.train_pattern == "together" or self.train_pattern == "seperate":
             obs={
                 'n_s':flat_neighbours_act_m,
                 'p_a':agent.self_act_m,

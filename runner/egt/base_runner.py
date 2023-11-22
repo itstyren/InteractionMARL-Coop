@@ -32,7 +32,7 @@ class Runner(object):
             from algorithms.egt.egt_trainer import EGT as TrainAlgo
             from algorithms.egt.policy import EGT_Policy as Policy
         # improt RL training
-        if self.all_args.train_interaction:
+        if self.all_args.train_pattern=='seperate':
             from algorithms.dqn.dqn_trainer import DQN_Policy as InteractAlgo
             from algorithms.dqn.policy import DQN_Policy as InteractPolicy
             if self.all_args.replay_scheme == "uniform":
