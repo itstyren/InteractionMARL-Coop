@@ -105,12 +105,12 @@ class LatticeEnv(AECEnv):
                             "p_r": spaces.Box(
                                 low=-5, high=5, shape=(self.args.memory_length, 1)
                             ),
-                            "n_interact": spaces.MultiDiscrete(
-                                np.full((4 * self.args.memory_length), 2)
-                            ),  # Discrete 2 - interact 1 no_interact 0
-                            "p_interact": spaces.MultiDiscrete(
-                                np.full((4 * self.args.memory_length), 2)
-                            ),
+                            # "n_interact": spaces.MultiDiscrete(
+                            #     np.full((4 * self.args.memory_length), 2)
+                            # ),  # Discrete 2 - interact 1 no_interact 0
+                            # "p_interact": spaces.MultiDiscrete(
+                            #     np.full((4 * self.args.memory_length), 2)
+                            # ),
                         }
                     )
                     self.interact_observation_spaces[agent.name] = spaces.Dict(
@@ -122,12 +122,12 @@ class LatticeEnv(AECEnv):
                             "p_r": spaces.Box(
                                 low=-5, high=5, shape=(self.args.memory_length, 1)
                             ),
-                            "n_interact": spaces.MultiDiscrete(
-                                np.full((self.args.memory_length), 2)
-                            ),  # Discrete 2 - interact 1 no_interact 0
-                            "p_interact": spaces.MultiDiscrete(
-                                np.full((self.args.memory_length), 2)
-                            ),
+                            # "n_interact": spaces.MultiDiscrete(
+                            #     np.full((self.args.memory_length), 2)
+                            # ),  # Discrete 2 - interact 1 no_interact 0
+                            # "p_interact": spaces.MultiDiscrete(
+                            #     np.full((self.args.memory_length), 2)
+                            # ),
                         }
                     )
                 else:
@@ -297,7 +297,20 @@ class LatticeEnv(AECEnv):
         for agent in self.world.agents:
             if self.args.compare_reward:
                 # n_r = []
-                # for _ in agent.neighbours:
+                # n_c_num=0
+                # for neighbour_idx in agent.neighbours:
+                #     if self.world.agents[neighbour_idx].action.s==0:
+                #         n_c_num+=1
+                # optimal_reward=self.args.dilemma_strength if n_c_num>0 else 0
+                # sum_agent_action_ia = np.sum(agent.action.ia)
+
+                # if sum_agent_action_ia != 0:
+                #     reward_ratio = agent_reward / sum_agent_action_ia
+                # else:
+                #     # Handle the division by z
+                #     # ero case (you can set a default value or take a different action)
+                #     reward_ratio = 0  
+                # interact_reward=reward_ratio-optimal_reward
                 #     if agent.action.s != self.world.agents[_].action.s:
                 #         n_r.append(self.world.agents[_].reward)
                 #     else:
@@ -315,10 +328,11 @@ class LatticeEnv(AECEnv):
 
                 # Compare agent's reward with the average reward of the opposite strategy
                 if agent.action.s == 0:
-                    compare_reward_n.append(agent.reward - strategy_mean_reward[1])
+                    strategy_reward=agent.reward - strategy_mean_reward[1]
                 else:
-                    compare_reward_n.append(agent.reward - strategy_mean_reward[0])
+                    strategy_reward=agent.reward - strategy_mean_reward[0]
 
+                compare_reward_n.append(strategy_reward)
                 # if agent.action.s != self.world.agents[n_i].action.s:
                 # if agent.action.s==0:
                 # print(agent.reward,self.world.agents[n_i].reward)

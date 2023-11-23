@@ -263,7 +263,7 @@ def get_config():
         "--net_arch",
         nargs="+",  # "+" allows one or more values to be passed as a list
         type=int,
-        default=[32, 32],
+        default=[16, 16],
         help="The number and size of each layer",
     )
     parser.add_argument(
