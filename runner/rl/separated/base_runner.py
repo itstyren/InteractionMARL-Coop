@@ -87,8 +87,18 @@ class Runner(object):
         self.model_dir = self.all_args.model_dir
 
         print("===================")
-        print("observation_space(single): ", self.envs.observation_spaces["agent_0"])
-        print("action_space(single): ", self.envs.action_spaces["agent_0"])
+        if self.all_args.train_pattern =='seperate':
+            print("Strategy observation_space: ", self.envs.observation_spaces["agent_0"])
+            print("Interaction observation_space: ", self.envs.interact_observation_spaces["agent_0"])
+            print("Strategy action_space: ", self.envs.action_spaces["agent_0"][0])
+            print("Interaction action_space: ", self.envs.action_spaces["agent_0"][1])
+        else:
+            print("observation_space(together): ", self.envs.observation_spaces["agent_0"])
+            if self.all_args.train_pattern =='together':
+                print("action_space(together): ", self.envs.action_spaces["agent_0"][2])
+            else:  # train_pattern =='strategy'
+                print("action_space(strategy): ", self.envs.action_spaces["agent_0"][0])
+
 
         # Select the training algorithm and action policy based on configuration
         if self.all_args.algorithm_name == "DQN":
@@ -113,6 +123,7 @@ class Runner(object):
         self.trainer = []
         self.iteract_trainer=[]
         self.buffer = []
+        self.interact_buffer = []
 
         # even policy load from file, still need initial trainer first 
         for agent_id in range(self.num_agents):
@@ -159,10 +170,18 @@ class Runner(object):
                 bu = ReplayBuffer(
                     self.all_args,
                     self.envs.observation_spaces["agent_{}".format(agent_id)],
-                    self.envs.action_spaces["agent_{}".format(agent_id)],
                     device=self.device,
                 )
                 self.buffer.append(bu)
+
+                if self.all_args.train_pattern == "seperate":
+                    interact_bu=ReplayBuffer(
+                    self.all_args,
+                    self.envs.interact_observation_spaces["agent_{}".format(agent_id)],
+                    device=self.device,
+                )
+                    self.interact_buffer.append(interact_bu)
+                
         
         print("\nReport Model Structure...")
         tensor_date = {}
@@ -170,8 +189,10 @@ class Runner(object):
             tensor_date[key] = torch.tensor(value.sample(), device=self.device)
         summary(self.trainer[0].policy.q_net, input_data=[tensor_date])
         if self.all_args.train_pattern == "seperate":
-            # for key, value in self.envs.interact_observation_spaces["agent_0"].items():
-            #     tensor_date[key] = torch.tensor(value.sample(), device=self.device)
+            tensor_date = {}
+            for key, value in self.envs.interact_observation_spaces["agent_0"].items():
+                tensor_date[key] = torch.tensor(value.sample(), device=self.device)
+            # print(tensor_date)
             summary(self.iteract_trainer[0].policy.q_net, input_data=[tensor_date])
         print("\nStrat Training...\n")
 
@@ -260,29 +281,34 @@ class Runner(object):
         # one step to environment
         if self.all_args.train_pattern == "together" or self.all_args.train_pattern == "seperate":
             combine_action=np.dstack((actions, interactions))
-            next_obs, rews, terminations, truncations, infos = self.envs.step(combine_action)
+            next_obs,i_next_obs, rews, terminations, truncations, infos = self.envs.step(combine_action)
         else:
             next_obs, rews, terminations, truncations, infos = self.envs.step(actions)
-
 
         
         # handle `final_observation` for trunction
         # where the next_obs for calculate TD Q-value is differnt then predict action
         real_next_obs = next_obs.copy()
+        
+        real_next_i_obs = i_next_obs.copy()
+
         for idx, trunc in enumerate(truncations):
             if trunc:
                 # print(next_obs[idx])
                 # print(infos[idx]["final_observation"])
                 real_next_obs[idx] = infos[idx]["final_observation"]
+                if self.all_args.train_pattern=='seperate':
+                    real_next_i_obs[idx] = infos[idx]["final_i_observation"]
                 # print(real_next_obs[idx])
                 # print('===============\n')
 
-        data = real_next_obs, rews, terminations, truncations, actions,interactions
+        data = real_next_obs,real_next_i_obs, rews, terminations, truncations, actions,interactions
 
         # print(next_obs)
         # insert data into buffer
-        self.insert(data, self.obs)
+        self.insert(data, self.obs,self.interact_obs)
         self.obs = next_obs.copy()
+        self.interact_obs = i_next_obs.copy()
 
         return infos
 
@@ -302,7 +328,7 @@ class Runner(object):
                 )
             if self.all_args.train_pattern == 'seperate': # train anohter interaction model
                 self.iteract_trainer[agent_id].train(
-                    batch_size=self.all_args.mini_batch, replay_buffer=self.buffer[agent_id],action_flag=1
+                    batch_size=self.all_args.mini_batch, replay_buffer=self.interact_buffer[agent_id],action_flag=1
                 )
             if self.all_args.algorithm_name != "DQN":
                 # if True:

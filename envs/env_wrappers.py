@@ -162,7 +162,7 @@ class DummyVecEnv(ShareVecEnv):
         return actions     
 
 
-
+# multi env
 class SubprocVecEnv(ShareVecEnv):
     def __init__(self, env_fns, spaces=None):
         """
@@ -193,17 +193,17 @@ class SubprocVecEnv(ShareVecEnv):
     def step_wait(self):
         results = [remote.recv() for remote in self.remotes]
         self.waiting = False
-        obs,rews,termination,truncation,infos = zip(*results)
+        obs,i_obs,rews,termination,truncation,infos = zip(*results)
         # print(rews)
         # print(np.stack(rews))
-        return np.stack(obs),np.stack(rews),np.stack(termination),np.stack(truncation),np.stack(infos)
+        return np.stack(obs),np.stack(i_obs),np.stack(rews),np.stack(termination),np.stack(truncation),np.stack(infos)
 
     def reset(self):
         for remote in self.remotes:
             remote.send(('reset', None))
         results = [remote.recv() for remote in self.remotes]
-        obs,coop_l=zip(*results)
-        return np.stack(obs),np.stack(coop_l)
+        obs,interact_obs,coop_l=zip(*results)
+        return np.stack(obs),np.stack(interact_obs),np.stack(coop_l)
 
 
     def reset_task(self):
@@ -250,18 +250,18 @@ def worker(remote, parent_remote, env_fn_wrapper):
                 if result is None:
                     pass
                 else:
-                   obs_n, reward_n,termination,truncation,infos = result 
+                   obs_n, i_obs_n,reward_n,termination,truncation,infos = result 
                 
             # checking whether a variable named done is of type bool or a NumPy array 
             if  'bool' in truncation.__class__.__name__  or 'bool' in termination.__class__.__name__:
                 if termination:
-                    obs_n,cl = env.reset(options='termination')
+                    obs_n,i_obs_n,cl = env.reset(options='termination')
                 elif truncation:
-                    obs_n,cl = env.reset()
-            remote.send((obs_n,reward_n,termination,truncation,infos))
+                    obs_n,i_obs_n,cl = env.reset()
+            remote.send((obs_n,i_obs_n,reward_n,termination,truncation,infos))
         elif cmd == 'reset':
-            ob,cl = env.reset()
-            remote.send((ob,cl))
+            ob,i_ob,cl = env.reset()
+            remote.send((ob,i_ob,cl))
         elif cmd == 'render':
             if data[0] == "rgb_array":
                 fr,interact_arr = env.render(mode=data[0],step=data[1])

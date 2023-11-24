@@ -219,6 +219,8 @@ class Strategy_DQN(BaseAlgorithm):
             current_q_values = []
             for i in range(len(replay_data.next_observations)):
                 with torch.no_grad():
+                    # if action_flag==1:
+                    #     print(replay_data.next_observations[i])
                     # Compute the next Q-values using the target network
                     next_q = self.q_net_target(replay_data.next_observations[i])
                     next_q_values.append(next_q)

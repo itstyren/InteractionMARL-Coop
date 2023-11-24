@@ -131,7 +131,7 @@ def get_config():
         help="compare reward with avaeage level",
     )
     parser.add_argument(
-        "--train_seperate",
+        "--seperate_interaction_reward",
         action="store_true",
         default=False,
         help="compare reward with avaeage level",
@@ -278,6 +278,12 @@ def get_config():
         default="strategy",
         help="pass a unit name of frequency type, together make tuple like (5, step) or (2, episode)",
     )    
+    parser.add_argument(
+        "--interact_pattern",
+        choices=["together",'seperate'],
+        default="together",
+        help="get the interaction decision regarging one neighbour and all neighbour once",
+    )  
     parser.add_argument(
         "--eval_mode",
         action="store_true",

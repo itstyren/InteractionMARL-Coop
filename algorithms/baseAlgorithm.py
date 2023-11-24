@@ -34,6 +34,7 @@ class BaseAlgorithm(ABC):
 
     :param learning_rate: learning rate for the optimizer,
         it can be a function of the current progress remaining (from 1 to 0)
+    :param action_flag: 0 only strategy, 1 only interaction 2 strategy and interaction together
     """
 
     def __init__(
@@ -89,11 +90,13 @@ class BaseAlgorithm(ABC):
             "eps": self.all_args.opti_eps,
         }
         # print(self.env.action_spaces["agent_0"])
-        # if self.action_flag==1:
-        #     obs_space=self.env.interact_observation_spaces["agent_0"]
-        # else:
-        #     obs_space=self.env.observation_spaces["agent_0"]
-        obs_space=self.env.observation_spaces["agent_0"]
+
+        if self.action_flag==1: # 1 means obs space for interaction model
+            obs_space=self.env.interact_observation_spaces["agent_0"]
+        else:
+            obs_space=self.env.observation_spaces["agent_0"]
+            
+        # obs_space=self.env.observation_spaces["agent_0"]
 
         self.policy = self.policy_class(
             self.all_args,

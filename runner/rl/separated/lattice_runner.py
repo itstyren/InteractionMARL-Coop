@@ -160,7 +160,8 @@ class LatticeRunner(Runner):
         Initial runner and  environment
         """
         # reset env
-        self.obs, coop_level = self.envs.reset()
+        self.obs,self.interact_obs, coop_level = self.envs.reset()
+
         print(
             "====== Initial Cooperative Level {:.2f} ======".format(
                 np.mean(coop_level))
@@ -168,6 +169,9 @@ class LatticeRunner(Runner):
         for agent_id in range(self.num_agents):
             self.buffer[agent_id].obs[0] = np.array(
                 list(self.obs[:, agent_id])).copy()
+            if self.all_args.train_pattern=='seperate':
+                self.interact_buffer[agent_id].obs[0] = np.array(
+                list(self.interact_obs[:, agent_id])).copy()  
 
         # total episode num
         self.episodes = (
@@ -237,10 +241,9 @@ class LatticeRunner(Runner):
                 if self.all_args.train_pattern == "seperate":
                     # print(self.buffer[agent_id].obs[step])
                     agent_interaction = self.iteract_trainer[agent_id].predict(
-                        self.buffer[agent_id].obs[step]
+                        self.interact_buffer[agent_id].obs[step]
                     )
                     agent_interaction = _t2n(agent_interaction)
-                    # print(agent_interaction)
 
             # Calculate previous base for the current agent
             previouse_base = self._calculate_previous_base(
@@ -299,7 +302,7 @@ class LatticeRunner(Runner):
             for pre_base in previouse_base
         ]
 
-    def insert(self, data, obs):
+    def insert(self, data, obs,i_obs):
         """
         Inster experience data to replay buffer
 
@@ -308,9 +311,8 @@ class LatticeRunner(Runner):
                    different from real_next_obs when trunction is true
         """
 
-        real_next_obs, rewards, termination, truncation, actions, interactions = data
-
-        if self.all_args.train_seperate:
+        real_next_obs, real_next_i_obs,rewards, termination, truncation, actions, interactions = data
+        if self.all_args.seperate_interaction_reward:
             # Combine the first values from all arrays in the list
             strategy_reward=np.concatenate([arr[..., 0].ravel() for arr in rewards])
             # Combine the second values from all arrays in the list
@@ -329,7 +331,7 @@ class LatticeRunner(Runner):
                 np.array(list(obs[:, agent_id])),
                 np.array(list(real_next_obs[:, agent_id])),
                 strategy_reward[:, agent_id],
-                interaction_reward[:, agent_id] if self.all_args.train_seperate else None,
+                interaction_reward[:, agent_id] if self.all_args.seperate_interaction_reward else None,
                 termination,
                 truncation,
                 actions[:, agent_id],
@@ -337,6 +339,21 @@ class LatticeRunner(Runner):
                 if self.all_args.train_pattern == "together" or self.all_args.train_pattern == "seperate"
                 else [],
             )
+            if self.all_args.train_pattern=='seperate':
+                self.interact_buffer[agent_id].insert(
+                    np.array(list(i_obs[:, agent_id])),
+                    np.array(list(real_next_i_obs[:, agent_id])),
+                    strategy_reward[:, agent_id],
+                    interaction_reward[:, agent_id] if self.all_args.seperate_interaction_reward else None,
+                    termination,
+                    truncation,
+                    actions[:, agent_id],
+                    interactions[:, agent_id]
+                    if self.all_args.train_pattern == "together" or self.all_args.train_pattern == "seperate"
+                    else [],
+                )                
+
+
 
     @torch.no_grad()
     def render(self, num_timesteps, render_env=0):

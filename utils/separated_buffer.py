@@ -23,7 +23,6 @@ class BaseBuffer(ABC):
 
     :param buffer_size: Max number of element in the buffer
     :param obs_space: Observation space
-    :param action_space: Action space
     :param device: PyTorch device
         to which the values will be converted
     :param n_envs: Number of parallel environments
@@ -36,7 +35,6 @@ class BaseBuffer(ABC):
         self,
         buffer_size: int,
         obs_space: spaces.Space,
-        action_space: spaces.Space,
         device: Union[torch.device, str] = "auto",
         n_envs: int = 1,
         episode_length: int = 1,
@@ -156,7 +154,7 @@ class BaseBuffer(ABC):
         self.obs[self.step] = obs.copy()
         self.next_obs[self.step] = next_obs.copy()
         self.rewards[self.step] = strategy_reward.copy().reshape(-1, 1)
-        if self.train_seperate:
+        if self.seperate_interaction_reward:
             self.interaction_rewards[self.step] = interaction_reward.copy().reshape(-1, 1)
         self.actions[self.step] = actions.copy().reshape(-1, 1)
         self.termination[self.step] = termination.copy().reshape(-1, 1)
@@ -213,7 +211,7 @@ class BaseBuffer(ABC):
             sample_actions=np.concatenate(self.actions[batch_inds, env_indices])
         elif action_flag==1: # only get interaction action
             sample_actions=np.concatenate(self.interaction[batch_inds, env_indices])
-            if self.train_seperate: # get alternative reward for interaction
+            if self.seperate_interaction_reward: # get alternative reward for interaction
                 sample_rewards=np.concatenate(self.interaction_rewards[batch_inds, env_indices])
         else: # get the combination of strategy and interaction action
             actions=np.concatenate(self.actions[batch_inds, env_indices])
@@ -272,19 +270,17 @@ class SeparatedReplayBuffer(BaseBuffer):
         self,
         args,
         obs_space,
-        action_space,
         device=torch.device("cpu"),
     ):
         # Adjust buffer size
         self.buffer_size = max(args.buffer_size // args.n_rollout_threads, 1)
 
         # if action is train seperate using differnt reward
-        self.train_seperate=args.train_seperate
+        self.seperate_interaction_reward=args.seperate_interaction_reward
 
         super().__init__(
             self.buffer_size,
             obs_space,
-            action_space,
             device,
             args.n_rollout_threads,
             args.episode_length,
@@ -314,13 +310,11 @@ class SeparatedRolloutBuffer(BaseBuffer):
         self,
         args,
         obs_space,
-        action_space,
         device=torch.device("cpu"),
     ):
         super().__init__(
             args.episode_length,
             obs_space,
-            action_space,
             device,
             args.n_rollout_threads,
             args.normalize_pattern,
@@ -353,8 +347,8 @@ class PrioritizedReplayBuffer(SeparatedReplayBuffer):
 
     """
 
-    def __init__(self, args, obs_space, action_space, device=torch.device("cpu")):
-        super().__init__(args, obs_space, action_space, device)
+    def __init__(self, args, obs_space, device=torch.device("cpu")):
+        super().__init__(args, obs_space, device)
 
         self.buffer_long = self.buffer_size * self.n_envs
 

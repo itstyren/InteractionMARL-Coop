@@ -141,7 +141,7 @@ class Scenario(BaseScenario):
         # flat_intaction_m=np.concatenate([list(d) for d in agent.intaction_m])
 
         agent.self_act_m.append(agent.action.s)
-        if self.train_pattern == "together" or self.train_pattern == "seperate":
+        if self.train_pattern == "together":
             obs={
                 'n_s':flat_neighbours_act_m,
                 'p_a':agent.self_act_m,
@@ -158,4 +158,35 @@ class Scenario(BaseScenario):
 
             }            
         # print(obs)
+        return obs
+
+
+    def interact_observation(self, agent, world):
+        """
+        get obs info for current agent
+        :param agent (Agent obj): current selected agent in World
+        :param world (World obj): World environment
+
+        :return obs (list): current neighbour strategy list, neighbour reward list
+        """
+        for _,n_i in enumerate(agent.neighbours):
+            agent_idx_in_neighbour=world.agents[n_i].neighbours.index(agent.index)
+            # agent.neighbours_act_m[_].append(world.agents[n_i].action.s)
+            agent.neighbours_intaction_m[_].append(world.agents[n_i].action.ia[agent_idx_in_neighbour])
+            agent.intaction_m[_].append(agent.action.ia[_])
+
+
+        flat_neighbours_act_m = np.concatenate([list(d) for d in agent.neighbours_act_m])
+        flat_neighbours_intaction_m=np.concatenate([list(d) for d in agent.neighbours_intaction_m])
+        flat_intaction_m=np.concatenate([list(d) for d in agent.intaction_m])
+
+        agent.self_act_m.append(agent.action.s)
+        obs={
+                'n_s':flat_neighbours_act_m,
+                # 'p_a':agent.self_act_m,
+                # 'p_r':agent.past_reward,
+                # 'n_interact':flat_neighbours_intaction_m,
+                'p_interact':flat_intaction_m
+
+            }
         return obs
