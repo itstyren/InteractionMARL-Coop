@@ -240,6 +240,7 @@ class LatticeRunner(Runner):
                         self.buffer[agent_id].obs[step]
                     )
                     agent_interaction = _t2n(agent_interaction)
+                    # print(agent_interaction)
 
             # Calculate previous base for the current agent
             previouse_base = self._calculate_previous_base(
@@ -260,6 +261,7 @@ class LatticeRunner(Runner):
                     self.num_timesteps, self.num_env_steps
                 )
                 _, _ = self.iteract_trainer[agent_id]._on_step()
+
             if self.all_args.train_pattern != "strategy":
                 interactions.append(agent_interaction)
             # print(agent_interaction)    
@@ -308,12 +310,26 @@ class LatticeRunner(Runner):
 
         real_next_obs, rewards, termination, truncation, actions, interactions = data
 
+        if self.all_args.train_seperate:
+            # Combine the first values from all arrays in the list
+            strategy_reward=np.concatenate([arr[..., 0].ravel() for arr in rewards])
+            # Combine the second values from all arrays in the list
+            interaction_reward = np.concatenate([arr[..., 1].ravel() for arr in rewards])
+            # Reshape the arrays to get the desired shape
+            strategy_reward = strategy_reward.reshape(len(rewards), -1)
+            interaction_reward = interaction_reward.reshape(len(rewards), -1)
+        else:
+            strategy_reward=rewards
+
+        # print(strategy_reward)
+
         # Unpack data for interaction training
         for agent_id in range(self.num_agents):
             self.buffer[agent_id].insert(
                 np.array(list(obs[:, agent_id])),
                 np.array(list(real_next_obs[:, agent_id])),
-                rewards[:, agent_id],
+                strategy_reward[:, agent_id],
+                interaction_reward[:, agent_id] if self.all_args.train_seperate else None,
                 termination,
                 truncation,
                 actions[:, agent_id],

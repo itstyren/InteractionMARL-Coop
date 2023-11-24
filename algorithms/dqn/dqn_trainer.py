@@ -230,6 +230,10 @@ class Strategy_DQN(BaseAlgorithm):
                 next_q_values, _ = torch.stack(next_q_values).max(dim=1)
                 # Avoid potential broadcast issue
                 next_q_values = next_q_values.reshape(-1)
+                # print(action_flag)
+                # print(replay_data.rewards)
+                # print(replay_data.actions)
+                # print('=====')
                 # 1-step TD target
                 target_q_values = (
                     replay_data.rewards

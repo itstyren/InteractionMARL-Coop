@@ -82,6 +82,7 @@ class BaseBuffer(ABC):
             dtype=np.int32,
         )
         self.rewards = np.zeros((self.buffer_size, self.n_envs, 1), dtype=np.float32)
+        self.interaction_rewards = np.zeros((self.buffer_size, self.n_envs, 1), dtype=np.float32)
         self.termination = np.zeros((self.buffer_size, self.n_envs, 1), dtype=bool)
         self.truncation = np.zeros((self.buffer_size, self.n_envs, 1), dtype=bool)
         self.norm_rewards = np.zeros((self.buffer_size, self.n_envs, 1), dtype=bool)
@@ -144,7 +145,7 @@ class BaseBuffer(ABC):
         self.full = False
 
     def insert(
-        self, obs, next_obs, rewards, termination, truncation, actions, interactions
+        self, obs, next_obs, strategy_reward,interaction_reward, termination, truncation, actions, interactions
     ):
         """
         Insert data into the buffer
@@ -154,7 +155,9 @@ class BaseBuffer(ABC):
         # print(self.rewards[self.step])
         self.obs[self.step] = obs.copy()
         self.next_obs[self.step] = next_obs.copy()
-        self.rewards[self.step] = rewards.copy().reshape(-1, 1)
+        self.rewards[self.step] = strategy_reward.copy().reshape(-1, 1)
+        if self.train_seperate:
+            self.interaction_rewards[self.step] = interaction_reward.copy().reshape(-1, 1)
         self.actions[self.step] = actions.copy().reshape(-1, 1)
         self.termination[self.step] = termination.copy().reshape(-1, 1)
         self.truncation[self.step] = truncation.copy().reshape(-1, 1)
@@ -189,6 +192,8 @@ class BaseBuffer(ABC):
         # print('next obs',self.obs[batch_inds+1, env_indices, :])
         # print('next',self.rewards[batch_inds, env_indices, :])
         # print('action:',self.actions[batch_inds, env_indices, :])
+
+        # different normaliz method 
         if self.normalize_pattern == "all":
             self.normalized_rewards()
             sample_rewards = np.concatenate(self.norm_rewards[batch_inds, env_indices])      
@@ -204,11 +209,13 @@ class BaseBuffer(ABC):
                 std_rewards = np.nanstd(rewards_copy)
                 sample_rewards = (sample_rewards - mean_rewards) / (std_rewards + 1e-5)
         
-        if action_flag == 0:
+        if action_flag == 0: # only get strategy action
             sample_actions=np.concatenate(self.actions[batch_inds, env_indices])
-        elif action_flag==1:
+        elif action_flag==1: # only get interaction action
             sample_actions=np.concatenate(self.interaction[batch_inds, env_indices])
-        else:
+            if self.train_seperate: # get alternative reward for interaction
+                sample_rewards=np.concatenate(self.interaction_rewards[batch_inds, env_indices])
+        else: # get the combination of strategy and interaction action
             actions=np.concatenate(self.actions[batch_inds, env_indices])
             interactions=np.concatenate(self.interaction[batch_inds, env_indices])
             sample_actions=convert_arrays_to_original(actions,interactions)
@@ -271,6 +278,9 @@ class SeparatedReplayBuffer(BaseBuffer):
         # Adjust buffer size
         self.buffer_size = max(args.buffer_size // args.n_rollout_threads, 1)
 
+        # if action is train seperate using differnt reward
+        self.train_seperate=args.train_seperate
+
         super().__init__(
             self.buffer_size,
             obs_space,
@@ -282,13 +292,13 @@ class SeparatedReplayBuffer(BaseBuffer):
         )
 
     def insert(
-        self, obs, next_obs, rewards, termination, truncation, actions, interaction
+        self, obs, next_obs, strategy_reward,interaction_reward, termination, truncation, actions, interaction
     ):
         """
         Insert data into the buffer
         """
         super().insert(
-            obs, next_obs, rewards, termination, truncation, actions, interaction
+            obs, next_obs, strategy_reward,interaction_reward, termination, truncation, actions, interaction
         )
         if self.step == self.buffer_size:
             self.full = True
@@ -317,13 +327,13 @@ class SeparatedRolloutBuffer(BaseBuffer):
         )
 
     def insert(
-        self, obs, next_obs, rewards, termination, truncation, actions, interaction
+        self, obs, next_obs, strategy_reward,interaction_reward, termination, truncation, actions, interaction
     ):
         """
         Insert data into the buffer
         """
         super().insert(
-            obs, next_obs, rewards, termination, truncation, actions, interaction
+            obs, next_obs, strategy_reward,interaction_reward, termination, truncation, actions, interaction
         )
 
         if self.step == self.buffer_size:
@@ -361,7 +371,7 @@ class PrioritizedReplayBuffer(SeparatedReplayBuffer):
         self._max_priority = 1.0
 
     def insert(
-        self, obs, next_obs, rewards, termination, truncation, actions, interaction
+        self, obs, next_obs, strategy_reward,interaction_reward, termination, truncation, actions, interaction
     ):
         """
         set priority of transition at current step
@@ -375,7 +385,7 @@ class PrioritizedReplayBuffer(SeparatedReplayBuffer):
             )
 
         return super().insert(
-            obs, next_obs, rewards, termination, truncation, actions, interaction
+            obs, next_obs, strategy_reward,interaction_reward, termination, truncation, actions, interaction
         )
 
     def _sample_proportional(self, batch_size):

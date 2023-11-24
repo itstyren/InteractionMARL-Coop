@@ -131,6 +131,12 @@ def get_config():
         help="compare reward with avaeage level",
     )
     parser.add_argument(
+        "--train_seperate",
+        action="store_true",
+        default=False,
+        help="compare reward with avaeage level",
+    )
+    parser.add_argument(
         "--init_distribution",
         type=str,
         choices=["random", "circle"],

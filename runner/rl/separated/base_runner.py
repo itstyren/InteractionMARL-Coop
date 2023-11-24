@@ -296,11 +296,11 @@ class Runner(object):
                 ti = self.trainer[agent_id].train(
                 batch_size=self.all_args.mini_batch, replay_buffer=self.buffer[agent_id],action_flag=2
             )
-            else: 
+            else: # only train strategy
                 ti = self.trainer[agent_id].train(
                     batch_size=self.all_args.mini_batch, replay_buffer=self.buffer[agent_id],action_flag=0
                 )
-            if self.all_args.train_pattern == 'seperate':
+            if self.all_args.train_pattern == 'seperate': # train anohter interaction model
                 self.iteract_trainer[agent_id].train(
                     batch_size=self.all_args.mini_batch, replay_buffer=self.buffer[agent_id],action_flag=1
                 )

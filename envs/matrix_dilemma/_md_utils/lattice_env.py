@@ -71,8 +71,8 @@ class LatticeEnv(AECEnv):
                 # strategy type 0 or 1
                 self.action_spaces[agent.name] = [
                     spaces.Discrete(2),
-                    spaces.Discrete(2),
-                    # spaces.Discrete(2**4),
+                    # spaces.Discrete(2),
+                    spaces.Discrete(2**4),
                     spaces.Discrete(2 * (2**4)),
                 ]
                 # self.action_spaces[agent.name] = spaces.MultiDiscrete(
@@ -225,6 +225,7 @@ class LatticeEnv(AECEnv):
         action_n = []
         final_reward_n = []
         compare_reward_n = []
+        interact_reward_n = []
 
         # set action for all agents
         for i, agent in enumerate(self.world.agents):
@@ -295,22 +296,27 @@ class LatticeEnv(AECEnv):
 
         # Get current obs info for each agent
         for agent in self.world.agents:
-            if self.args.compare_reward:
-                # n_r = []
-                # n_c_num=0
-                # for neighbour_idx in agent.neighbours:
-                #     if self.world.agents[neighbour_idx].action.s==0:
-                #         n_c_num+=1
-                # optimal_reward=self.args.dilemma_strength if n_c_num>0 else 0
-                # sum_agent_action_ia = np.sum(agent.action.ia)
+            if self.args.train_seperate:
+                sum_agent_action_ia = np.sum(agent.action.ia)
+                optimal_reward=0
+                interact_reward=0
+                if sum_agent_action_ia > 0:
+                    for _,neighbour_idx in enumerate(agent.neighbours):
+                        if agent.action.ia[_]==1:
+                            if self.world.agents[neighbour_idx].action.s==0:
+                                # optimal_reward+=self.world.payoff_matrix[agent.action.s,0]
+                                optimal_reward+=1
+                            else:
+                                optimal_reward-=1
+                    
+                    interact_reward=optimal_reward/sum_agent_action_ia
 
-                # if sum_agent_action_ia != 0:
-                #     reward_ratio = agent_reward / sum_agent_action_ia
-                # else:
-                #     # Handle the division by z
-                #     # ero case (you can set a default value or take a different action)
-                #     reward_ratio = 0  
-                # interact_reward=reward_ratio-optimal_reward
+                # interact_reward=agent.reward-optimal_reward
+                # interact_reward=(n_c_num-3)/4
+                interact_reward_n.append(interact_reward)      
+
+            if self.args.compare_reward:
+                n_r = []
                 #     if agent.action.s != self.world.agents[_].action.s:
                 #         n_r.append(self.world.agents[_].reward)
                 #     else:
@@ -356,7 +362,7 @@ class LatticeEnv(AECEnv):
         interaction_n=self.count_effective_interaction()
         # Calculate the element-wise product
         # elementwise_product = interaction_n * action_n
-        
+        # print(interaction_n)
         # Calculate the average for each value (0 and 1) in the second array
         ave_interact_c = np.mean(interaction_n[np.array(action_n) == 0])
         ave_interact_d = np.mean(interaction_n[np.array(action_n) == 1])
@@ -372,14 +378,29 @@ class LatticeEnv(AECEnv):
         }
         # if  np.any(np.isnan(compare_reward_n)):
         #     print(compare_reward_n)
+        # print(len(compare_reward_n),len(interact_reward_n))
+
+        
 
         if self.args.compare_reward:
-            return obs_n, compare_reward_n, termination, infos
+            if self.args.train_seperate:
+                combined_reward_n = np.column_stack((compare_reward_n, interact_reward_n))
+                return obs_n, combined_reward_n, termination, infos
+            else:
+                return obs_n, compare_reward_n, termination, infos
         else:
             if self.args.rewards_pattern == "normal":
-                return obs_n, instant_payoff_n, termination, infos
+                if self.args.train_seperate:
+                    combined_reward_n = np.column_stack((instant_payoff_n, interact_reward_n))
+                    return obs_n, combined_reward_n, termination, infos
+                else:
+                    return obs_n, instant_payoff_n, termination, infos
             else:
-                return obs_n, final_reward_n, termination, infos
+                if self.args.train_seperate:
+                    combined_reward_n = np.column_stack((final_reward_n, interact_reward_n))
+                    return obs_n, combined_reward_n, termination, infos
+                else:
+                    return obs_n, final_reward_n, termination, infos
 
     def _set_action(self, action, agent):
         """Set environment action for a particular agent."""
@@ -499,7 +520,7 @@ class LatticeEnv(AECEnv):
                 else:
                     im = ax.imshow(i_n, cmap=cmap_interact, vmin=-1, vmax=1)
                     fig.colorbar(im, ax=ax)
-            ax.axis("off")
+                ax.axis("off")
             fig.suptitle(
                 "Step {}, Dilemma {}".format(step, self.world.payoff_matrix[1][0])
             )

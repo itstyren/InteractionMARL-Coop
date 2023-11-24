@@ -920,28 +920,51 @@
 #             np.array(_).T for _ in episode_acts_flattened
 #         ] 
 
-def middle_and_nearby_indices(dim, radius_length):
-    assert radius_length*2<dim,f"Expected radius_length< {int(dim/2)}, but got {radius_length}"
-    middle_idx = dim // 2 * dim + dim // 2
+# def middle_and_nearby_indices(dim, radius_length):
+#     assert radius_length*2<dim,f"Expected radius_length< {int(dim/2)}, but got {radius_length}"
+#     middle_idx = dim // 2 * dim + dim // 2
 
-    nearby_indices = []
+#     nearby_indices = []
 
-    for i in range(-radius_length, radius_length + 1):
-        for j in range(-radius_length, radius_length + 1):
-            # Calculate the flattened index
-            index = middle_idx + i * dim + j
+#     for i in range(-radius_length, radius_length + 1):
+#         for j in range(-radius_length, radius_length + 1):
+#             # Calculate the flattened index
+#             index = middle_idx + i * dim + j
 
-            # Check if the index is within the bounds of the flattened list
-            if 0 <= index < dim * dim:
-                nearby_indices.append(index)
+#             # Check if the index is within the bounds of the flattened list
+#             if 0 <= index < dim * dim:
+#                 nearby_indices.append(index)
 
-    return middle_idx, nearby_indices
+#     return middle_idx, nearby_indices
 
-# Example usage:
-dim = 10
-radius = 1
+# # Example usage:
+# dim = 10
+# radius = 1
 
-middle_point, nearby_idxs = middle_and_nearby_indices(dim, radius)
+# middle_point, nearby_idxs = middle_and_nearby_indices(dim, radius)
 
-print("Middle point index:", middle_point)
-print("Nearby indices with radius {}: {}".format(radius, nearby_idxs))
+# print("Middle point index:", middle_point)
+# print("Nearby indices with radius {}: {}".format(radius, nearby_idxs))
+
+import numpy as np
+
+# Your list of arrays
+array_list = [
+    np.array([[[-0.3, -0.63333333], [-0.61538462, -1.3]]]),
+    np.array([[[-0.53333333, 0.], [-0.53333333, 1.3]]]),
+    # Add more arrays as needed
+]
+print(array_list)
+# Combine the first values from all arrays in the list
+first_values_combined = np.concatenate([arr[..., 0].ravel() for arr in array_list])
+
+# Combine the second values from all arrays in the list
+second_values_combined = np.concatenate([arr[..., 1].ravel() for arr in array_list])
+
+# Reshape the arrays to get the desired shape
+first_values_combined = first_values_combined.reshape(len(array_list), -1)
+second_values_combined = second_values_combined.reshape(len(array_list), -1)
+
+# Print the results
+print("First values combined:\n", first_values_combined)
+print("\nSecond values combined:\n", second_values_combined)

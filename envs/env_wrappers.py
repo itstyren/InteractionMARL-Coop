@@ -194,6 +194,8 @@ class SubprocVecEnv(ShareVecEnv):
         results = [remote.recv() for remote in self.remotes]
         self.waiting = False
         obs,rews,termination,truncation,infos = zip(*results)
+        # print(rews)
+        # print(np.stack(rews))
         return np.stack(obs),np.stack(rews),np.stack(termination),np.stack(truncation),np.stack(infos)
 
     def reset(self):
