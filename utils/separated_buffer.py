@@ -213,6 +213,9 @@ class BaseBuffer(ABC):
             sample_actions=np.concatenate(self.interaction[batch_inds, env_indices])
             if self.seperate_interaction_reward: # get alternative reward for interaction
                 sample_rewards=np.concatenate(self.interaction_rewards[batch_inds, env_indices])
+
+
+                
         else: # get the combination of strategy and interaction action
             actions=np.concatenate(self.actions[batch_inds, env_indices])
             interactions=np.concatenate(self.interaction[batch_inds, env_indices])

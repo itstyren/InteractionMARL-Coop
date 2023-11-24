@@ -175,9 +175,10 @@ class Scenario(BaseScenario):
             agent.neighbours_intaction_m[_].append(world.agents[n_i].action.ia[agent_idx_in_neighbour])
             agent.intaction_m[_].append(agent.action.ia[_])
 
+        # print([list(d) for d in agent.neighbours_act_m])
 
         flat_neighbours_act_m = np.concatenate([list(d) for d in agent.neighbours_act_m])
-        flat_neighbours_intaction_m=np.concatenate([list(d) for d in agent.neighbours_intaction_m])
+        # flat_neighbours_intaction_m=np.concatenate([list(d) for d in agent.neighbours_intaction_m])
         flat_intaction_m=np.concatenate([list(d) for d in agent.intaction_m])
 
         agent.self_act_m.append(agent.action.s)
