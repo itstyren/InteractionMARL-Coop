@@ -102,10 +102,10 @@ class LatticeEnv(AECEnv):
                             "n_s": spaces.MultiDiscrete(
                                 np.full((4 * self.args.memory_length), 2)
                             ),  # Discrete 2 - Coop[0], Defection[1]
-                            "p_a": spaces.MultiDiscrete([2] * self.args.memory_length),
-                            "p_r": spaces.Box(
-                                low=-5, high=5, shape=(self.args.memory_length, 1)
-                            ),
+                            # "p_a": spaces.MultiDiscrete([2] * self.args.memory_length),
+                            # "p_r": spaces.Box(
+                            #     low=-5, high=5, shape=(self.args.memory_length, 1)
+                            # ),
                             # "n_interact": spaces.MultiDiscrete(
                             #     np.full((4 * self.args.memory_length), 2)
                             # ),  # Discrete 2 - interact 1 no_interact 0
@@ -315,12 +315,12 @@ class LatticeEnv(AECEnv):
         # Get current obs info for each agent
         for agent in self.world.agents:
             if self.args.seperate_interaction_reward:
-                sum_agent_action_ia = np.sum(agent.action.ia)
-                optimal_reward = 0
-                interact_reward = 0
-                # if sum_agent_action_ia > 0:
-                for _, neighbour_idx in enumerate(agent.neighbours):
-                    optimal_reward+=self.world.payoff_matrix[agent.action.s,self.world.agents[neighbour_idx].action.s]
+                # sum_agent_action_ia = np.sum(agent.action.ia)
+                # optimal_reward = 0
+                # interact_reward = 0
+                # # if sum_agent_action_ia > 0:
+                # for _, neighbour_idx in enumerate(agent.neighbours):
+                #     optimal_reward+=self.world.payoff_matrix[agent.action.s,self.world.agents[neighbour_idx].action.s]
                 # optimal_reward=optimal_reward/4
                         # if agent.action.ia[_] == 1:
                             # if self.world.agents[neighbour_idx].action.s == 0:
@@ -330,16 +330,17 @@ class LatticeEnv(AECEnv):
                                 # optimal_reward -= 1
 
                 # interact_reward = optimal_reward/sum_agent_action_ia
-                if sum_agent_action_ia==0:
-                    int_rwd=0
-                else:
-                    int_rwd=agent.reward/sum_agent_action_ia
-                interact_reward=int_rwd-optimal_reward/4
+                # if sum_agent_action_ia==0:
+                #     int_rwd=0
+                # else:
+                #     int_rwd=agent.reward/sum_agent_action_ia
+                # interact_reward=int_rwd-optimal_reward/4
                 # interact_reward=(n_c_num-3)/4
-                interact_reward_n.append(interact_reward)
+                # interact_reward_n.append(interact_reward)
+                interact_reward_n.append(agent.reward)
 
             if self.args.compare_reward:
-                n_r = []
+                # n_r = []
                 #     if agent.action.s != self.world.agents[_].action.s:
                 #         n_r.append(self.world.agents[_].reward)
                 #     else:
@@ -380,9 +381,9 @@ class LatticeEnv(AECEnv):
         # Check if the state is below a certain threshold for termination
         termination = False
         coop_level = self.state()
-        if coop_level < 0.05:
-            # print('cooperation level',coop_level)
-            termination = True
+        # if coop_level < 0.05:
+        #     # print('cooperation level',coop_level)
+        #     termination = True
 
         interaction_n = self.count_effective_interaction()
         # Calculate the element-wise product
