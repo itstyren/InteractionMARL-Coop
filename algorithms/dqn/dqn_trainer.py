@@ -62,7 +62,7 @@ class Strategy_DQN(BaseAlgorithm):
         gradient_steps: int = 1,
         exploration_fraction: float = 0.1,
         exploration_initial_eps: float = 1,
-        exploration_final_eps: float = 0.01,
+        exploration_final_eps: float = 0.05,
         max_grad_norm: float = 10,
         device=torch.device("cpu"),
         _init_setup_model: bool = True,
