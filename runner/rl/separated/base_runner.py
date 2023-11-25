@@ -136,6 +136,7 @@ class Runner(object):
                 learning_rate=self.lr,
                 prioritized_replay_beta=self.beta,
                 prioritized_replay_eps=self.all_args.prioritized_replay_eps,
+                exploration_final_eps=0.05,
                 device=self.device,
                 action_flag=0 if self.all_args.train_pattern=='strategy' or self.all_args.train_pattern=='seperate' else 2
             )
@@ -151,6 +152,7 @@ class Runner(object):
                     learning_rate=self.lr,
                     prioritized_replay_beta=self.beta,
                     prioritized_replay_eps=self.all_args.prioritized_replay_eps,
+                    exploration_final_eps=0.1,
                     device=self.device,
                     action_flag=1
                 )
