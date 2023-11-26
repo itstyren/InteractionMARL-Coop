@@ -946,25 +946,39 @@
 # print("Middle point index:", middle_point)
 # print("Nearby indices with radius {}: {}".format(radius, nearby_idxs))
 
+# import numpy as np
+
+# # Your list of arrays
+# array_list = [
+#     np.array([[[-0.3, -0.63333333], [-0.61538462, -1.3]]]),
+#     np.array([[[-0.53333333, 0.], [-0.53333333, 1.3]]]),
+#     # Add more arrays as needed
+# ]
+# print(array_list)
+# # Combine the first values from all arrays in the list
+# first_values_combined = np.concatenate([arr[..., 0].ravel() for arr in array_list])
+
+# # Combine the second values from all arrays in the list
+# second_values_combined = np.concatenate([arr[..., 1].ravel() for arr in array_list])
+
+# # Reshape the arrays to get the desired shape
+# first_values_combined = first_values_combined.reshape(len(array_list), -1)
+# second_values_combined = second_values_combined.reshape(len(array_list), -1)
+
+# # Print the results
+# print("First values combined:\n", first_values_combined)
+# print("\nSecond values combined:\n", second_values_combined)
 import numpy as np
+# Suppress the output
+np.set_printoptions(suppress=True)
+# np.set_printoptions(precision=2)
 
-# Your list of arrays
-array_list = [
-    np.array([[[-0.3, -0.63333333], [-0.61538462, -1.3]]]),
-    np.array([[[-0.53333333, 0.], [-0.53333333, 1.3]]]),
-    # Add more arrays as needed
-]
-print(array_list)
-# Combine the first values from all arrays in the list
-first_values_combined = np.concatenate([arr[..., 0].ravel() for arr in array_list])
+def exp_normalize(x):
+    b = x.max()
+    y = np.exp(x - b)
+    return y / y.sum()
 
-# Combine the second values from all arrays in the list
-second_values_combined = np.concatenate([arr[..., 1].ravel() for arr in array_list])
-
-# Reshape the arrays to get the desired shape
-first_values_combined = first_values_combined.reshape(len(array_list), -1)
-second_values_combined = second_values_combined.reshape(len(array_list), -1)
-
-# Print the results
-print("First values combined:\n", first_values_combined)
-print("\nSecond values combined:\n", second_values_combined)
+x = np.array([0.5,0.8 ])
+print(x)
+ex=exp_normalize(x)
+print(ex)

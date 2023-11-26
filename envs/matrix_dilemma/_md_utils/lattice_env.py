@@ -102,7 +102,7 @@ class LatticeEnv(AECEnv):
                             "n_s": spaces.MultiDiscrete(
                                 np.full((4 * self.args.memory_length), 2)
                             ),  # Discrete 2 - Coop[0], Defection[1]
-                            # "p_a": spaces.MultiDiscrete([2] * self.args.memory_length),
+                            "p_a": spaces.MultiDiscrete([2] * self.args.memory_length),
                             # "p_r": spaces.Box(
                             #     low=-5, high=5, shape=(self.args.memory_length, 1)
                             # ),
@@ -355,9 +355,14 @@ class LatticeEnv(AECEnv):
                 # print(reward)
                 # reward=(agent.reward-1)/4
                 # reward=agent.reward-1
+                dim_lengths=[0,0]
+                for _, neighbour_idx in enumerate(agent.neighbours):
+                    dim_lengths[self.world.agents[neighbour_idx].action.s]+=1
+                    
+
 
                 # Calculate the length of each dimension
-                dim_lengths = [len(row) for row in strategy_reward]
+                # dim_lengths = [len(row) for row in strategy_reward]
 
                 # Calculate cooperation action and defection action ratio
                 ratios = [element / np.sum(dim_lengths) for element in dim_lengths]
@@ -386,9 +391,9 @@ class LatticeEnv(AECEnv):
         # Check if the state is below a certain threshold for termination
         termination = False
         coop_level = self.state()
-        # if coop_level < 0.05:
-        #     # print('cooperation level',coop_level)
-        #     termination = True
+        if coop_level < 0.05:
+            # print('cooperation level',coop_level)
+            termination = True
 
         interaction_n = self.count_effective_interaction()
         # Calculate the element-wise product
