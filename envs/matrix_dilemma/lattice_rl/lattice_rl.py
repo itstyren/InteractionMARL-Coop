@@ -144,8 +144,8 @@ class Scenario(BaseScenario):
         if self.train_pattern == "together":
             obs={
                 'n_s':flat_neighbours_act_m,
-                'p_a':agent.self_act_m,
-                'p_r':agent.past_reward,
+                # 'p_a':agent.self_act_m,
+                # 'p_r':agent.past_reward,
                 # 'n_interact':flat_neighbours_intaction_m,
                 # 'p_interact':flat_intaction_m
 
@@ -153,8 +153,8 @@ class Scenario(BaseScenario):
         else:
             obs={
                 'n_s':flat_neighbours_act_m,
-                'p_a':agent.self_act_m,
-                'p_r':agent.past_reward,
+                # 'p_a':agent.self_act_m,
+                # 'p_r':agent.past_reward,
 
             }            
         # print(obs)

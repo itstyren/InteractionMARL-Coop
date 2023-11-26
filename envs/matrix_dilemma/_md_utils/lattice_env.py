@@ -356,13 +356,18 @@ class LatticeEnv(AECEnv):
                 # reward=(agent.reward-1)/4
                 # reward=agent.reward-1
 
-                # Compare agent's reward with the average reward of the opposite strategy
-                if agent.action.s == 0:
-                    strategy_reward = agent.reward - strategy_mean_reward[1]
-                else:
-                    strategy_reward = agent.reward - strategy_mean_reward[0]
+                # Calculate the length of each dimension
+                dim_lengths = [len(row) for row in strategy_reward]
 
-                compare_reward_n.append(strategy_reward)
+                # Calculate cooperation action and defection action ratio
+                ratios = [element / np.sum(dim_lengths) for element in dim_lengths]
+                
+                if agent.action.s == 0:
+                    agent_strategy_reward = agent.reward*ratios[0] - strategy_mean_reward[1]*ratios[1]
+                else:
+                    agent_strategy_reward = agent.reward*ratios[1] - strategy_mean_reward[0]*ratios[0]
+
+                compare_reward_n.append(agent_strategy_reward)
                 # if agent.action.s != self.world.agents[n_i].action.s:
                 # if agent.action.s==0:
                 # print(agent.reward,self.world.agents[n_i].reward)
