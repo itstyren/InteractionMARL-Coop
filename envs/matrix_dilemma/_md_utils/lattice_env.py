@@ -141,9 +141,9 @@ class LatticeEnv(AECEnv):
                                 np.full((4 * self.args.memory_length), 2)
                             ),  # Discrete 2 - Coop[0], Defection[1]
                             "p_a": spaces.MultiDiscrete([2] * self.args.memory_length),
-                            "p_r": spaces.Box(
-                                low=-5, high=5, shape=(self.args.memory_length, 1)
-                            ),
+                            # "p_r": spaces.Box(
+                            #     low=-5, high=5, shape=(self.args.memory_length, 1)
+                            # ),
                         }
                     )
                 # print(self.observation_spaces[agent.name].sample()  )
@@ -195,8 +195,8 @@ class LatticeEnv(AECEnv):
         self.rewards = {name: 0.0 for name in self.agents}
         self.current_actions = [agent.action.s for agent in self.world.agents]
         # 15 mean interact with all neighbour
-        self.current_interaction = [np.random.randint(
-            16) for agent in self.world.agents]
+        self.current_interaction=[agent.action.ia  for agent in self.world.agents]
+
         self._cumulative_rewards = {name: 0.0 for name in self.agents}
         self.terminations = {name: False for name in self.agents}
         self.truncations = {name: False for name in self.agents}
@@ -564,7 +564,7 @@ class LatticeEnv(AECEnv):
                     fig.colorbar(im, ax=ax)
                 ax.axis("off")
             fig.suptitle(
-                "Step {}, Dilemma {}".format(
+                "Mode {}, Step {}, Dilemma {}".format(mode,
                     step, self.world.payoff_matrix[1][0])
             )
         else:
@@ -617,6 +617,9 @@ class LatticeEnv(AECEnv):
                 #     ]
                 #     == 1
                 # ):
+                # print(self.world.agents[n_idx].action.ia[
+                #     self.world.agents[n_idx].neighbours.index(agent.index)
+                # ])
                 if self.world.agents[n_idx].action.ia[
                     self.world.agents[n_idx].neighbours.index(agent.index)
                 ] == 1:

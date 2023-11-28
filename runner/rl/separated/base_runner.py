@@ -53,6 +53,7 @@ class Runner(object):
         self.num_env_steps = self.all_args.num_env_steps
         self.episode_length = self.all_args.episode_length
         self.n_rollout_threads = self.all_args.n_rollout_threads
+        self.n_eval_rollout_threads=self.all_args.n_eval_rollout_threads
         self.algorithm_name = self.all_args.algorithm_name
         self.experiment_name = self.all_args.experiment_name
         self.env_name = self.all_args.env_name
@@ -82,6 +83,9 @@ class Runner(object):
         self.video_interval = self.all_args.video_interval
         self.save_interval = self.all_args.save_interval
         self.verbose = 2
+        self.use_eval = self.all_args.use_eval
+        self.eval_interval = self.all_args.eval_interval
+
 
         # dir
         self.model_dir = self.all_args.model_dir
@@ -136,7 +140,7 @@ class Runner(object):
                 learning_rate=self.lr,
                 prioritized_replay_beta=self.beta,
                 prioritized_replay_eps=self.all_args.prioritized_replay_eps,
-                exploration_final_eps=0.05,
+                exploration_final_eps=self.all_args.strategy_final_exploration,
                 device=self.device,
                 action_flag=0 if self.all_args.train_pattern=='strategy' or self.all_args.train_pattern=='seperate' else 2
             )
@@ -152,7 +156,7 @@ class Runner(object):
                     learning_rate=self.lr,
                     prioritized_replay_beta=self.beta,
                     prioritized_replay_eps=self.all_args.prioritized_replay_eps,
-                    exploration_final_eps=0.1,
+                    exploration_final_eps=self.all_args.insteraction_final_exploration,
                     device=self.device,
                     action_flag=1
                 )
@@ -285,7 +289,7 @@ class Runner(object):
             combine_action=np.dstack((actions, interactions))
             next_obs,i_next_obs, rews, terminations, truncations, infos = self.envs.step(combine_action)
         else:
-            next_obs, rews, terminations, truncations, infos = self.envs.step(actions)
+            next_obs, i_next_obs,rews, terminations, truncations, infos = self.envs.step(actions)
 
         
         # handle `final_observation` for trunction
@@ -409,6 +413,22 @@ class Runner(object):
                     k, {k: v}, self.num_timesteps * self.n_rollout_threads
                 )
 
+    def log_eval(self, train_infos):
+        """
+        Log training info.
+        :param train_infos: (dict) information about training update.
+        :param total_num_steps: (int) total number of training env steps.
+        """
+        # print(train_infos)
+        for k, v in train_infos.items():
+            if self.use_wandb:
+                wandb.log({k: v}, step=self.num_timesteps)
+            else:
+                self.logger.add_scalars(
+                    k, {k: v}, self.num_timesteps * self.n_eval_rollout_threads
+                )
+
+
     def log_rollout(self, rollout_info):
         """
         Log rollout info.
@@ -524,7 +544,7 @@ class Runner(object):
         )        
         print("-" * 44, "\n")
 
-    def write_to_video(self, all_frames, episode):
+    def write_to_video(self, all_frames, episode,video_type='train'):
         """
         record this episode and
         save the gif to local or wandb
@@ -546,7 +566,7 @@ class Runner(object):
             )
             wandb.log(
                 {
-                    "video": wandb.Video(
+                    video_type: wandb.Video(
                         str(self.gif_dir) + "/episode.gif", fps=4, format="gif"
                     )
                 },
@@ -555,7 +575,7 @@ class Runner(object):
 
         elif self.all_args.save_gifs:
             imageio.mimsave(
-                str(self.gif_dir) + "/episode_{}.gif".format(episode),
+                str(self.gif_dir) + "/{}_episode_{}.gif".format(video_type,episode),
                 images,
                 duration=self.all_args.ifi,
             )

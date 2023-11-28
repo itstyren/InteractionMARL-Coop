@@ -27,10 +27,13 @@ def make_run_env(all_args, raw_env, env_type=0):
 
         return init_env
 
-    if all_args.n_rollout_threads == 1:
+    rollout_threads = (
+        all_args.n_rollout_threads if env_type == 0 else all_args.n_eval_rollout_threads
+    )
+    if rollout_threads == 1:
         return DummyVecEnv([get_env_fn(0)])
     else:
-        return SubprocVecEnv([get_env_fn(i) for i in range(all_args.n_rollout_threads)])
+        return SubprocVecEnv([get_env_fn(i) for i in range(rollout_threads)])
 
 
 def parse_args(parser):
@@ -149,7 +152,11 @@ if __name__ == "__main__":
         from envs.matrix_dilemma import lattice_rl_v0 as LatticeENV
 
     envs = make_run_env(all_args, LatticeENV.raw_env, env_type=0)
-    eval_envs = make_run_env(all_args, LatticeENV.raw_env, env_type=1) if all_args.model_dir is not None else None
+    eval_envs = (
+        make_run_env(all_args, LatticeENV.raw_env, env_type=1)
+        if all_args.model_dir is not None or all_args.use_eval
+        else None
+    )
 
     config = {
         "all_args": all_args,

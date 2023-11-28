@@ -80,8 +80,12 @@ class Scenario(BaseScenario):
                     agent.action.s = 0
                 else:
                     agent.action.s = 1
-            # set interaction action                        
-            agent.action.ia=np.random.randint(2, size=4)
+
+            # set interaction action         
+            if self.train_pattern=='strategy':
+                agent.action.ia=[1,1,1,1]
+            else:
+                agent.action.ia=np.random.randint(2, size=4)
             agent.init_memory(world.initial_ratio)
 
     def reward(self, agent, world):

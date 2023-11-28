@@ -968,17 +968,36 @@
 # # Print the results
 # print("First values combined:\n", first_values_combined)
 # print("\nSecond values combined:\n", second_values_combined)
+# import numpy as np
+# # Suppress the output
+# np.set_printoptions(suppress=True)
+# # np.set_printoptions(precision=2)
+
+# def exp_normalize(x):
+#     b = x.max()
+#     y = np.exp(x - b)
+#     return y / y.sum()
+
+# x = np.array([0.5,0.8 ])
+# print(x)
+# ex=exp_normalize(x)
+# print(ex)
+
 import numpy as np
-# Suppress the output
-np.set_printoptions(suppress=True)
-# np.set_printoptions(precision=2)
 
-def exp_normalize(x):
-    b = x.max()
-    y = np.exp(x - b)
-    return y / y.sum()
+# Your 2D array
+two_dim_array = np.array([
+    [np.array([0, 1]), np.array([0, 1]), np.array([0, 1]), np.array([1, 1]), np.array([1, 1]),
+     np.array([1, 1]), np.array([0, 1]), np.array([0, 1]), np.array([0, 1]), np.array([1, 0])],
+    [np.array([1, 1]), np.array([1, 1]), np.array([1, 0]), np.array([0, 0]), np.array([1, 0]),
+     np.array([1, 1]), np.array([1, 1]), np.array([1, 1]), np.array([1, 1]), np.array([0, 0])],
+    [np.array([1, 0]), np.array([1, 1]), np.array([1, 1]), np.array([1, 1]), np.array([1, 1]),
+     np.array([0, 1]), np.array([1, 1]), np.array([0, 0]), np.array([1, 0]), np.array([0, 0])]
+])
 
-x = np.array([0.5,0.8 ])
-print(x)
-ex=exp_normalize(x)
-print(ex)
+# Calculate the mean along the first axis (axis=0)
+mean_array = np.mean(two_dim_array.flatten())
+
+# Print the resulting mean array
+print("Mean Array:")
+print(mean_array)

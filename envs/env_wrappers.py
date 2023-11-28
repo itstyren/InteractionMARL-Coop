@@ -226,7 +226,7 @@ class SubprocVecEnv(ShareVecEnv):
     def render(self, mode="rgb_array",step=0):
         for remote in self.remotes:
             remote.send(('render', (mode,step)))
-        if mode == "rgb_array":   
+        if mode == "train" or mode=='eval':   
             results = [remote.recv() for remote in self.remotes]
             frame,intraction_array=zip(*results)
             return np.stack(frame),np.stack(intraction_array)

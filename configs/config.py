@@ -93,12 +93,6 @@ def get_config():
         help="the dim size (dim*dim) of the agent network",
     )
     parser.add_argument(
-        "--eval_dim",
-        type=int,
-        default=5,
-        help="the radius length for instered trained agent",
-    )
-    parser.add_argument(
         "--dilemma_strength",
         type=float,
         default=1,
@@ -142,7 +136,7 @@ def get_config():
         choices=["random", "circle"],
         default="random",
         help="Initial strategy distribution should be random or a circle",
-    ) 
+    )
 
     # parser.add_argument(
     #     "--memory_length",
@@ -197,10 +191,23 @@ def get_config():
     )
     parser.add_argument(
         "--normalize_pattern",
-        choices=["none", "all", "sample",'episode'],
+        choices=["none", "all", "sample", "episode"],
         default="none",
         help="how to normalize the training reward",
     )
+    parser.add_argument(
+        "--strategy_final_exploration",
+        type=float,
+        default=0.05,
+        help="The exploration rate of dilemma action at final",
+    )  
+    parser.add_argument(
+        "--insteraction_final_exploration",
+        type=float,
+        default=0.1,
+        help="The exploration rate of selection action at final",
+    )  
+
 
     # optimizer parameters
     parser.add_argument(
@@ -274,23 +281,47 @@ def get_config():
     )
     parser.add_argument(
         "--train_pattern",
-        choices=["strategy", "together",'seperate'],
+        choices=["strategy", "together", "seperate"],
         default="strategy",
         help="pass a unit name of frequency type, together make tuple like (5, step) or (2, episode)",
-    )    
+    )
     parser.add_argument(
         "--interact_pattern",
-        choices=["together",'seperate'],
+        choices=["together", "seperate"],
         default="together",
         help="get the interaction decision regarging one neighbour and all neighbour once",
-    )  
+    )
+
+    # eval parameters (after training)
     parser.add_argument(
         "--eval_mode",
         action="store_true",
         default=False,
         help="when activated, the model will not pass to traing process",
     )
+    parser.add_argument(
+        "--eval_dim",
+        type=int,
+        default=5,
+        help="the radius length for instered trained agent",
+    )
 
+    # eval parameter (during training)
+    parser.add_argument(
+        "--use_eval",
+        action="store_true",
+        default=False,
+        help="by default, do not start evaluation. If set`, start evaluation alongside with training.",
+    )
+    parser.add_argument(
+        "--eval_interval",
+        type=int,
+        default=25,
+        help="time duration between contiunous twice evaluation progress.",
+    )
+    parser.add_argument("--n_eval_rollout_threads", type=int, default=1,
+                        help="Number of parallel envs for evaluating rollouts")
+    
     # run parameters
     parser.add_argument(
         "--use_linear_lr_decay",
@@ -342,8 +373,6 @@ def get_config():
         default=False,
         help="by default, do not save replay buffer. If set, save replay buffer.",
     )
-
-
 
     # log parameters
     parser.add_argument(
