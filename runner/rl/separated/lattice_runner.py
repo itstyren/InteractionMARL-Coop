@@ -431,7 +431,7 @@ class LatticeRunner(Runner):
                 episode % self.video_interval == 0 or episode == self.episodes - 1
             ):
                 eval_image, interaction_n = self.render(
-                    self.num_timesteps, render_env=1
+                    self.num_timesteps-self.episode_length+eval_step, render_env=1
                 )
                 # print(interaction_n)
                 eval_all_frames.append(eval_image[0])
