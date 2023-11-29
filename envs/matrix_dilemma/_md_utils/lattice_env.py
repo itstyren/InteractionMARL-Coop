@@ -56,7 +56,7 @@ class LatticeEnv(AECEnv):
             (num_range[:, np.newaxis] & (2 ** np.arange(4))) > 0
         ).astype(int)
 
-        interat_dim = 1 if self.args.interact_pattern == 'seperate' else 4
+        interat_dim = 1 if self.args.interact_pattern == "seperate" else 4
 
         # set spaces
         self.action_spaces = dict()
@@ -96,7 +96,10 @@ class LatticeEnv(AECEnv):
                     }
                 )
             else:
-                if self.args.train_pattern == "together" or self.args.train_pattern == "seperate":
+                if (
+                    self.args.train_pattern == "together"
+                    or self.args.train_pattern == "seperate"
+                ):
                     self.observation_spaces[agent.name] = spaces.Dict(
                         {
                             "n_s": spaces.MultiDiscrete(
@@ -118,8 +121,7 @@ class LatticeEnv(AECEnv):
                     self.interact_observation_spaces[agent.name] = spaces.Dict(
                         {
                             "n_s": spaces.MultiDiscrete(
-                                np.full(
-                                    (interat_dim*self.args.memory_length), 2)
+                                np.full((interat_dim * self.args.memory_length), 2)
                             ),  # Discrete 2 - Coop[0], Defection[1]
                             # "p_a": spaces.MultiDiscrete([2] * self.args.memory_length),
                             # "p_r": spaces.Box(
@@ -129,8 +131,7 @@ class LatticeEnv(AECEnv):
                             #     np.full((interat_dim* self.args.memory_length), 2)
                             # ),  # Discrete 2 - interact 1 no_interact 0
                             "p_interact": spaces.MultiDiscrete(
-                                np.full(
-                                    (interat_dim * self.args.memory_length), 2)
+                                np.full((interat_dim * self.args.memory_length), 2)
                             ),
                         }
                     )
@@ -195,7 +196,7 @@ class LatticeEnv(AECEnv):
         self.rewards = {name: 0.0 for name in self.agents}
         self.current_actions = [agent.action.s for agent in self.world.agents]
         # 15 mean interact with all neighbour
-        self.current_interaction=[agent.action.ia  for agent in self.world.agents]
+        self.current_interaction = [agent.action.ia for agent in self.world.agents]
 
         self._cumulative_rewards = {name: 0.0 for name in self.agents}
         self.terminations = {name: False for name in self.agents}
@@ -215,7 +216,7 @@ class LatticeEnv(AECEnv):
         # Get current obs info for each agent
         for agent in self.world.agents:
             obs_n.append(self.observe(agent.name))
-            if self.args.train_pattern == 'seperate':
+            if self.args.train_pattern == "seperate":
                 interact_obs_n.append(self.interact_observe(agent.name))
 
         # get initial cooperative level
@@ -251,7 +252,10 @@ class LatticeEnv(AECEnv):
             # action_n.append(action)
             self._set_action(action, agent)
 
-            if self.args.train_pattern == "together" or self.args.train_pattern == "seperate":
+            if (
+                self.args.train_pattern == "together"
+                or self.args.train_pattern == "seperate"
+            ):
                 interaction = self.current_interaction[i]
                 self._set_interaction(interaction, agent)
 
@@ -322,12 +326,12 @@ class LatticeEnv(AECEnv):
                 # for _, neighbour_idx in enumerate(agent.neighbours):
                 #     optimal_reward+=self.world.payoff_matrix[agent.action.s,self.world.agents[neighbour_idx].action.s]
                 # optimal_reward=optimal_reward/4
-                        # if agent.action.ia[_] == 1:
-                            # if self.world.agents[neighbour_idx].action.s == 0:
-                                # optimal_reward+=self.world.payoff_matrix[agent.action.s,0]
-                                # optimal_reward += 1
-                            # else:
-                                # optimal_reward -= 1
+                # if agent.action.ia[_] == 1:
+                # if self.world.agents[neighbour_idx].action.s == 0:
+                # optimal_reward+=self.world.payoff_matrix[agent.action.s,0]
+                # optimal_reward += 1
+                # else:
+                # optimal_reward -= 1
 
                 # interact_reward = optimal_reward/sum_agent_action_ia
                 # if sum_agent_action_ia==0:
@@ -355,22 +359,24 @@ class LatticeEnv(AECEnv):
                 # print(reward)
                 # reward=(agent.reward-1)/4
                 # reward=agent.reward-1
-                dim_lengths=[0,0]
+                dim_lengths = [0, 0]
                 for _, neighbour_idx in enumerate(agent.neighbours):
-                    dim_lengths[self.world.agents[neighbour_idx].action.s]+=1
-                    
-
+                    dim_lengths[self.world.agents[neighbour_idx].action.s] += 1
 
                 # Calculate the length of each dimension
                 # dim_lengths = [len(row) for row in strategy_reward]
 
                 # Calculate cooperation action and defection action ratio
                 ratios = [element / np.sum(dim_lengths) for element in dim_lengths]
-                
+
                 if agent.action.s == 0:
-                    agent_strategy_reward = agent.reward*ratios[0] - strategy_mean_reward[1]*ratios[1]
+                    agent_strategy_reward = (
+                        agent.reward * ratios[0] - strategy_mean_reward[1] * ratios[1]
+                    )
                 else:
-                    agent_strategy_reward = agent.reward*ratios[1] - strategy_mean_reward[0]*ratios[0]
+                    agent_strategy_reward = (
+                        agent.reward * ratios[1] - strategy_mean_reward[0] * ratios[0]
+                    )
 
                 compare_reward_n.append(agent_strategy_reward)
                 # if agent.action.s != self.world.agents[n_i].action.s:
@@ -385,7 +391,7 @@ class LatticeEnv(AECEnv):
                 # instant_payoff_n.append(reward)
 
             obs_n.append(self.observe(agent.name))
-            if self.args.train_pattern == 'seperate':
+            if self.args.train_pattern == "seperate":
                 i_obs_n.append(self.interact_observe(agent.name))
 
         # Check if the state is below a certain threshold for termination
@@ -404,16 +410,14 @@ class LatticeEnv(AECEnv):
         ave_interact_c = np.mean(interaction_n[np.array(action_n) == 0])
         ave_interact_d = np.mean(interaction_n[np.array(action_n) == 1])
 
-        ave_payoff_c = np.mean(np.array(instant_payoff_n)[
-                               np.array(action_n) == 0])
-        ave_payoff_d = np.mean(np.array(instant_payoff_n)[
-                               np.array(action_n) == 1])
+        ave_payoff_c = np.mean(np.array(instant_payoff_n)[np.array(action_n) == 0])
+        ave_payoff_d = np.mean(np.array(instant_payoff_n)[np.array(action_n) == 1])
 
         # Prepare info dictionary
         infos = {
             "instant_payoff": [ave_payoff_c, ave_payoff_d],
             "current_cooperation": coop_level,
-            'strategy_based_interaction': [ave_interact_c, ave_interact_d]
+            "strategy_based_interaction": [ave_interact_c, ave_interact_d],
         }
         # if  np.any(np.isnan(compare_reward_n)):
         #     print(compare_reward_n)
@@ -422,7 +426,8 @@ class LatticeEnv(AECEnv):
         if self.args.compare_reward:
             if self.args.seperate_interaction_reward:
                 combined_reward_n = np.column_stack(
-                    (compare_reward_n, interact_reward_n))
+                    (compare_reward_n, interact_reward_n)
+                )
                 return obs_n, i_obs_n, combined_reward_n, termination, infos
             else:
                 return obs_n, i_obs_n, compare_reward_n, termination, infos
@@ -430,14 +435,16 @@ class LatticeEnv(AECEnv):
             if self.args.rewards_pattern == "normal":
                 if self.args.seperate_interaction_reward:
                     combined_reward_n = np.column_stack(
-                        (instant_payoff_n, interact_reward_n))
+                        (instant_payoff_n, interact_reward_n)
+                    )
                     return obs_n, i_obs_n, combined_reward_n, termination, infos
                 else:
                     return obs_n, i_obs_n, instant_payoff_n, termination, infos
             else:
                 if self.args.seperate_interaction_reward:
                     combined_reward_n = np.column_stack(
-                        (final_reward_n, interact_reward_n))
+                        (final_reward_n, interact_reward_n)
+                    )
                     return obs_n, i_obs_n, combined_reward_n, termination, infos
                 else:
                     return obs_n, i_obs_n, final_reward_n, termination, infos
@@ -489,8 +496,7 @@ class LatticeEnv(AECEnv):
                     self.truncations[a] = True
                 infos["final_observation"] = obs_n
                 infos["final_i_observation"] = i_obs_n
-                infos["cumulative_payoffs"] = list(
-                    self._cumulative_rewards.values())
+                infos["cumulative_payoffs"] = list(self._cumulative_rewards.values())
 
             return obs_n, i_obs_n, reward_n, termination, truncation, infos
 
@@ -515,12 +521,15 @@ class LatticeEnv(AECEnv):
 
         # Define color map for rendering
         # color_set = np.array(["#0c056d",'#3c368a','#6d69a7','#9d9bc4','#cecde1','#ffe7e7','#ffd0d0','#ff7272','#ff4242', "#ff1414"])
-        color_set = np.array(["#0c056d", '#eaeaea', "#ff1414"])
+        color_set = np.array(["#0c056d", "#eaeaea", "#ff1414"])
 
         # cmap = colors.ListedColormap([color_set[0], color_set[1],color_set[2],color_set[3],color_set[4],color_set[5],color_set[6],color_set[7]])
         cmap = colors.ListedColormap(np.array(["#0c056d", "red"]))
         # Create the colormap
-        if self.args.train_pattern == "together" or self.args.train_pattern == "seperate":
+        if (
+            self.args.train_pattern == "together"
+            or self.args.train_pattern == "seperate"
+        ):
             cmap_interact = colors.LinearSegmentedColormap.from_list(
                 "my_list", color_set, N=9
             )
@@ -541,7 +550,10 @@ class LatticeEnv(AECEnv):
         action_n = np.array(self.current_actions).reshape(
             self.scenario.env_dim, self.scenario.env_dim
         )
-        if self.args.train_pattern == "together" or self.args.train_pattern == "seperate":
+        if (
+            self.args.train_pattern == "together"
+            or self.args.train_pattern == "seperate"
+        ):
             interaction_n = self.count_effective_interaction()
 
             # Modify interaction_n based on action_n
@@ -553,7 +565,10 @@ class LatticeEnv(AECEnv):
             i_n = i_n.reshape(self.scenario.env_dim, self.scenario.env_dim)
 
         # Create a subplot for rendering
-        if self.args.train_pattern == "together" or self.args.train_pattern == "seperate":
+        if (
+            self.args.train_pattern == "together"
+            or self.args.train_pattern == "seperate"
+        ):
             fig, axs = plt.subplots(1, 2, figsize=(6, 3))
             for idx, ax in enumerate(axs.flat):
                 # im = ax.imshow(action_n, cmap=cmap, alpha=scaled_interaction_n,norm=norm)
@@ -564,16 +579,18 @@ class LatticeEnv(AECEnv):
                     fig.colorbar(im, ax=ax)
                 ax.axis("off")
             fig.suptitle(
-                "Mode {}, Step {}, Dilemma {}".format(mode,
-                    step, self.world.payoff_matrix[1][0])
+                "Mode {}, Step {}, Dilemma {}".format(
+                    mode, step, self.world.payoff_matrix[1][0]
+                )
             )
         else:
             fig, ax = plt.subplots(figsize=(3, 3))
             im = ax.imshow(action_n, cmap=cmap, norm=norm)
             ax.axis("off")
             ax.set_title(
-                "Step {}, Dilemma {}".format(
-                    step, self.world.payoff_matrix[1][0])
+                "Mode {}, Step {}, Dilemma {}".format(
+                    mode, step, self.world.payoff_matrix[1][0]
+                )
             )
             # Configure plot aesthetics
 
@@ -620,9 +637,12 @@ class LatticeEnv(AECEnv):
                 # print(self.world.agents[n_idx].action.ia[
                 #     self.world.agents[n_idx].neighbours.index(agent.index)
                 # ])
-                if self.world.agents[n_idx].action.ia[
-                    self.world.agents[n_idx].neighbours.index(agent.index)
-                ] == 1:
+                if (
+                    self.world.agents[n_idx].action.ia[
+                        self.world.agents[n_idx].neighbours.index(agent.index)
+                    ]
+                    == 1
+                ):
                     interaction_time += 1
 
             interaction_n.append(interaction_time)

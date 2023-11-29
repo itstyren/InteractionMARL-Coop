@@ -40,6 +40,7 @@ class LatticeRunner(Runner):
         episode_d_reward_during_training = []
         episode_exploration_rate = []
         interaction_log = []
+        self.eval_interaction_log = []
 
         while self.num_timesteps < self.num_env_steps:
             num_collected_steps, num_collected_episodes = 0, 0
@@ -82,7 +83,7 @@ class LatticeRunner(Runner):
 
                         # eval
                         if episode % self.eval_interval == 0 and self.use_eval:
-                            self.eval()
+                            self.eval(episode)
 
                         if self.all_args.use_render and (
                             episode % self.video_interval == 0
@@ -97,7 +98,7 @@ class LatticeRunner(Runner):
                     episode += 1
                     episode_info = []
                     all_frames = []
-                    eval_all_frames=[]
+                    eval_all_frames = []
                     episode_loss = []
                     episode_c_reward_during_training = []
                     episode_d_reward_during_training = []
@@ -106,27 +107,21 @@ class LatticeRunner(Runner):
                     self.br_start_idx = self.buffer[0].step
 
                 # record every step for current episode
-                if self.all_args.use_render and (
-                    episode % self.video_interval == 0 or episode == self.episodes - 1
+                if (
+                    self.have_train
+                    and self.all_args.use_render
+                    and (
+                        episode % self.video_interval == 0
+                        or episode == self.episodes - 1
+                    )
                 ):
                     # print('step:',step,'episode:',episode)
                     image, interaction_n = self.render(self.num_timesteps)
                     # print(interaction_n)
                     all_frames.append(image[0])
 
-                    # render eval result
-                    if self.use_eval:
-                        eval_image, interaction_n = self.render(self.num_timesteps, render_env=1)
-                        # print(interaction_n)
-                        eval_all_frames.append(eval_image[0])
-
-
-                    # save render result
-                    if (
-                        self.have_train
-                        and self.all_args.save_result
-                        and step + 1 == self.episode_length
-                    ):
+                    # save render result (only the last step for each render episode)
+                    if self.all_args.save_result and step + 1 == self.episode_length:
                         interaction_log.append(interaction_n)
                         save_array(
                             interaction_log, self.plot_dir, "agent_intraction.npz"
@@ -139,7 +134,6 @@ class LatticeRunner(Runner):
                 episode_info.append(infos)
                 rollout_info = {
                     "rollout/exploration_rate": self.exploration_rate,
-                    'rollout/interaction_exploration_rate':self.interaction_exploration_rate,
                     "rollout/avg_coop_for_cooperation": self.avg_strategy_coop_based[0],
                     "rollout/avg_coop_for_defection": self.avg_strategy_coop_based[1],
                     "rollout/target_update": self.target_update,
@@ -153,6 +147,9 @@ class LatticeRunner(Runner):
                     #     [info["current_cooperation"][1] for info in infos]
                     # ),
                 }
+                if self.all_args.train_pattern != "strategy":
+                    rollout_info["rollout/interaction_exploration_rate"]= self.interaction_exploration_rate
+
                 self.log_rollout(rollout_info)
                 episode_exploration_rate.append(self.exploration_rate)
 
@@ -208,7 +205,7 @@ class LatticeRunner(Runner):
         actions = []
         interactions = []
         exploration_rates = []
-        interaction_exploration_rates=[]
+        interaction_exploration_rates = []
         strategy_coop_based = (
             []
         )  # how much previous coop make each agent have coop or defection decision
@@ -276,7 +273,9 @@ class LatticeRunner(Runner):
                 self.iteract_trainer[agent_id]._update_current_progress_remaining(
                     self.num_timesteps, self.num_env_steps
                 )
-                interactions_exploration_rate, _ = self.iteract_trainer[agent_id]._on_step()
+                interactions_exploration_rate, _ = self.iteract_trainer[
+                    agent_id
+                ]._on_step()
                 interaction_exploration_rates.append(interactions_exploration_rate)
 
             if self.all_args.train_pattern != "strategy":
@@ -288,7 +287,9 @@ class LatticeRunner(Runner):
 
         self.exploration_rate = np.mean(np.array(exploration_rates))
         if self.all_args.train_pattern == "seperate":
-            self.interaction_exploration_rate=np.mean(np.array(interaction_exploration_rates))
+            self.interaction_exploration_rate = np.mean(
+                np.array(interaction_exploration_rates)
+            )
         self.target_update = target_update
 
         return (
@@ -394,29 +395,56 @@ class LatticeRunner(Runner):
         """
         if render_env == 0:
             envs = self.envs
+            render_mod = "train"
         else:
             envs = self.eval_envs
-        if render_env==0:
-            render_mod='train'
-        else:
-            render_mod='eval'
-        image, intraction_array = envs.render(mode=render_mod, step=num_timesteps)
+            render_mod = "eval"
+        image, intraction_array = envs.render(render_mod, num_timesteps)
         # print
         return image, intraction_array
 
     @torch.no_grad()
-    def eval(self):
+    def eval(self, episode):
+        """
+        eval the model during training
+        """
         deterministic = False
-        if self.exploration_rate == self.all_args.strategy_final_exploration:
+        # the exploration rate will decrese slightly below the threshold
+        if self.exploration_rate <= self.all_args.strategy_final_exploration:
             deterministic = True
-
+        # print(self.exploration_rate)
+        # print(deterministic)
+        # reset env
         eval_obs, eval_interact_obs, eval_coop_level = self.eval_envs.reset()
+
         eval_episode_info = []
+        eval_all_frames = []
         eval_episode_acts = np.empty(
             (self.num_agents, self.episode_length), dtype=object
         )
-        eval_episode_final_acts=[]
+        eval_episode_final_acts = []
+
+        # iterate each step in one episode
         for eval_step in range(self.episode_length):
+            # render
+            if self.all_args.use_render and (
+                episode % self.video_interval == 0 or episode == self.episodes - 1
+            ):
+                eval_image, interaction_n = self.render(
+                    self.num_timesteps, render_env=1
+                )
+                # print(interaction_n)
+                eval_all_frames.append(eval_image[0])
+
+                # save render result
+                if self.all_args.save_result and eval_step + 1 == self.episode_length:
+                    self.eval_interaction_log.append(interaction_n)
+                    save_array(
+                        self.eval_interaction_log,
+                        self.plot_dir,
+                        "agent_eval_intraction.npz",
+                    )
+
             eval_actions = []
             eval_interactions = []
             # iterate all agent
@@ -446,7 +474,9 @@ class LatticeRunner(Runner):
 
                 # print(agent_action,agent_interaction)
             for agent_id in range(self.num_agents):
-                eval_episode_final_acts.append(eval_episode_acts[agent_id][-(self.episode_length // 20) :])
+                eval_episode_final_acts.append(
+                    eval_episode_acts[agent_id][-(self.episode_length // 20) :]
+                )
 
             eval_actions = np.column_stack(eval_actions)
             eval_interactions = (
@@ -481,10 +511,17 @@ class LatticeRunner(Runner):
 
             eval_episode_info.append(eval_infos)
 
-            # print(eval_obs)
-        eval_episode_acts=[[agentlist.tolist() for agentlist in setplist] for setplist in eval_episode_acts]
+        if self.all_args.use_render and (
+            episode % self.video_interval == 0 or episode == self.episodes - 1
+        ):
+            self.write_to_video(eval_all_frames, episode, video_type="eval")
+
+        eval_episode_acts = [
+            [agentlist.tolist() for agentlist in setplist]
+            for setplist in eval_episode_acts
+        ]
         # print('eval_episode_acts',eval_episode_acts)
-        
+
         average_robutness, best_robutness = self.calculate_strategy_roubutness(
             np.array(eval_episode_acts).copy(), mode="eval"
         )
@@ -508,14 +545,18 @@ class LatticeRunner(Runner):
                 d_interaction.append(info["strategy_based_interaction"][1])
 
         # concatenated_acts = np.concatenate(np.array(eval_episode_acts).flatten())
-        concatenated_final_acts = np.concatenate(np.array(eval_episode_final_acts).flatten())
+        concatenated_final_acts = np.concatenate(
+            np.array(eval_episode_final_acts).flatten()
+        )
         eval_log_infos = {}
         eval_log_infos["eval_result/average_cooperation_length"] = average_robutness[0]
         eval_log_infos["eval_result/average_defection_length"] = average_robutness[1]
-        eval_log_infos["eval_result/episode_cooperation_level"] = 1 - np.mean(eval_episode_acts)
-        eval_log_infos["eval_result/episode_final_cooperation_performance"] = 1 - np.mean(
-            concatenated_final_acts
+        eval_log_infos["eval_result/episode_cooperation_level"] = 1 - np.mean(
+            eval_episode_acts
         )
+        eval_log_infos[
+            "eval_result/episode_final_cooperation_performance"
+        ] = 1 - np.mean(concatenated_final_acts)
         eval_log_infos["eval_payoff/cooperation_episode_payoff"] = np.mean(c_p)
         eval_log_infos["eval_payoff/defection_episode_payoff"] = np.mean(d_p)
         eval_log_infos["eval_payoff/episode_payoff"] = np.mean(
@@ -524,7 +565,9 @@ class LatticeRunner(Runner):
         eval_log_infos["eval_interaction/cooperation_interaction_ratio"] = np.mean(
             c_interaction
         )
-        eval_log_infos["eval_interaction/defection_interaction_ratio"] = np.mean(d_interaction)
+        eval_log_infos["eval_interaction/defection_interaction_ratio"] = np.mean(
+            d_interaction
+        )
         eval_log_infos["eval_interaction/average_interaction"] = np.mean(
             np.concatenate((c_interaction, d_interaction), axis=0)
         )
@@ -683,7 +726,8 @@ class LatticeRunner(Runner):
         """
         if mode == "train":
             episode_acts_flattened = [
-                [np.concatenate(episode).tolist() for episode in agent] for agent in episode_acts
+                [np.concatenate(episode).tolist() for episode in agent]
+                for agent in episode_acts
             ]
         else:
             episode_acts_flattened = episode_acts

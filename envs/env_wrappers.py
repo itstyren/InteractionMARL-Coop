@@ -229,6 +229,7 @@ class SubprocVecEnv(ShareVecEnv):
         if mode == "train" or mode=='eval':   
             results = [remote.recv() for remote in self.remotes]
             frame,intraction_array=zip(*results)
+            # print(frame,intraction_array)
             return np.stack(frame),np.stack(intraction_array)
          
     def get_actions(self):
@@ -263,7 +264,7 @@ def worker(remote, parent_remote, env_fn_wrapper):
             ob,i_ob,cl = env.reset()
             remote.send((ob,i_ob,cl))
         elif cmd == 'render':
-            if data[0] == "rgb_array":
+            if data[0] == "train" or data[0] =='eval': 
                 fr,interact_arr = env.render(mode=data[0],step=data[1])
                 remote.send((fr,interact_arr))
             elif data == "human":
