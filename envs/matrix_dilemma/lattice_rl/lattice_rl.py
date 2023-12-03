@@ -24,7 +24,7 @@ class raw_env(LatticeEnv):
             world=world,
             max_cycles=max_cycles,
             continuous_actions=False,
-            render_mode=None,
+            render_mode=render_mode,
             args=args
         )
         self.metadata["name"] = "lattice_rl_v0"
@@ -137,12 +137,12 @@ class Scenario(BaseScenario):
             # agent_idx_in_neighbour=world.agents[n_i].neighbours.index(agent.index)
             agent.neighbours_act_m[_].append(world.agents[n_i].action.s)
             # agent.neighbours_intaction_m[_].append(world.agents[n_i].action.ia[agent_idx_in_neighbour])
-            # agent.intaction_m[_].append(agent.action.ia[_])
+            agent.intaction_m[_].append(agent.action.ia[_])
 
 
         flat_neighbours_act_m = np.concatenate([list(d) for d in agent.neighbours_act_m])
         # flat_neighbours_intaction_m=np.concatenate([list(d) for d in agent.neighbours_intaction_m])
-        # flat_intaction_m=np.concatenate([list(d) for d in agent.intaction_m])
+        flat_intaction_m=np.concatenate([list(d) for d in agent.intaction_m])
 
         agent.self_act_m.append(agent.action.s)
         if self.train_pattern == "together":
@@ -151,7 +151,7 @@ class Scenario(BaseScenario):
                 'p_a':agent.self_act_m,
                 # 'p_r':agent.past_reward,
                 # 'n_interact':flat_neighbours_intaction_m,
-                # 'p_interact':flat_intaction_m
+                'p_interact':flat_intaction_m
 
             }
         else:
@@ -174,9 +174,9 @@ class Scenario(BaseScenario):
         :return obs (list): current neighbour strategy list, neighbour reward list
         """
         for _,n_i in enumerate(agent.neighbours):
-            agent_idx_in_neighbour=world.agents[n_i].neighbours.index(agent.index)
+            # agent_idx_in_neighbour=world.agents[n_i].neighbours.index(agent.index)
             # agent.neighbours_act_m[_].append(world.agents[n_i].action.s)
-            agent.neighbours_intaction_m[_].append(world.agents[n_i].action.ia[agent_idx_in_neighbour])
+            # agent.neighbours_intaction_m[_].append(world.agents[n_i].action.ia[agent_idx_in_neighbour])
             agent.intaction_m[_].append(agent.action.ia[_])
 
         # print([list(d) for d in agent.neighbours_act_m])

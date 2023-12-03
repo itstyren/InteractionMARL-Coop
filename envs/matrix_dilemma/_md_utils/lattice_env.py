@@ -97,8 +97,7 @@ class LatticeEnv(AECEnv):
                 )
             else:
                 if (
-                    self.args.train_pattern == "together"
-                    or self.args.train_pattern == "seperate"
+                     self.args.train_pattern == "seperate"
                 ):
                     self.observation_spaces[agent.name] = spaces.Dict(
                         {
@@ -135,6 +134,25 @@ class LatticeEnv(AECEnv):
                             ),
                         }
                     )
+                elif  self.args.train_pattern == "together":
+                    self.observation_spaces[agent.name] = spaces.Dict(
+                        {
+                            "n_s": spaces.MultiDiscrete(
+                                np.full((4 * self.args.memory_length), 2)
+                            ),  # Discrete 2 - Coop[0], Defection[1]
+                            "p_a": spaces.MultiDiscrete([2] * self.args.memory_length),
+                            # "p_r": spaces.Box(
+                            #     low=-5, high=5, shape=(self.args.memory_length, 1)
+                            # ),
+                            # "n_interact": spaces.MultiDiscrete(
+                            #     np.full((4 * self.args.memory_length), 2)
+                            # ),  # Discrete 2 - interact 1 no_interact 0
+                            "p_interact": spaces.MultiDiscrete(
+                                np.full((4 * self.args.memory_length), 2)
+                            ),
+                        }
+                    )                    
+
                 else:
                     self.observation_spaces[agent.name] = spaces.Dict(
                         {
@@ -304,7 +322,7 @@ class LatticeEnv(AECEnv):
                 self.rewards[agent.name] = agent_reward
 
         # Check if comparison of rewards is enabled
-        if self.args.compare_reward:
+        if self.args.compare_reward_pattern =='all':
             # Initialize a list to store rewards for each strategy
             strategy_reward = [[], []]
 
@@ -343,30 +361,24 @@ class LatticeEnv(AECEnv):
                 # interact_reward_n.append(interact_reward)
                 interact_reward_n.append(agent.reward)
 
-            if self.args.compare_reward:
-                # n_r = []
-                #     if agent.action.s != self.world.agents[_].action.s:
-                #         n_r.append(self.world.agents[_].reward)
-                #     else:
-                #         n_r.append(agent.reward)
-
-                # reward = np.mean(agent.reward - np.array(n_r))
-                # print(agent.reward)
-                # print(self.steps,'|',agent.index,'|',agent.action.s,'|',reward,'|',agent.action.ia)
-                # n_i=np.random.choice(agent.neighbours)
-                # counter_reward=float(self.scenario.counter_reward(agent, self.world))
-                # reward=agent.reward-counter_reward
-                # print(reward)
-                # reward=(agent.reward-1)/4
-                # reward=agent.reward-1
+            if self.args.compare_reward_pattern !='none':
+                if self.args.compare_reward_pattern =='neighbour':
+                    strategy_reward = [[], []]
+                    for idx, neighbour_idx in  enumerate(agent.neighbours):
+                        strategy_reward[self.world.agents[neighbour_idx].action.s].append(self.world.agents[neighbour_idx].reward)  
+                    strategy_mean_reward = [
+                        np.nanmean(s_r) if s_r else 0 for s_r in strategy_reward
+                    ]
+                
+                # count neighbour strategy
                 dim_lengths = [0, 0]
                 for _, neighbour_idx in enumerate(agent.neighbours):
                     dim_lengths[self.world.agents[neighbour_idx].action.s] += 1
 
-                # Calculate the length of each dimension
-                # dim_lengths = [len(row) for row in strategy_reward]
+                # add self strategy into count
+                dim_lengths[agent.action.s]+=1
 
-                # Calculate cooperation action and defection action ratio
+
                 ratios = [element / np.sum(dim_lengths) for element in dim_lengths]
 
                 if agent.action.s == 0:
@@ -397,7 +409,7 @@ class LatticeEnv(AECEnv):
         # Check if the state is below a certain threshold for termination
         termination = False
         coop_level = self.state()
-        if coop_level < 0.05:
+        if coop_level < 0.05 and self.render_mode=='train':
             # print('cooperation level',coop_level)
             termination = True
 
@@ -419,11 +431,8 @@ class LatticeEnv(AECEnv):
             "current_cooperation": coop_level,
             "strategy_based_interaction": [ave_interact_c, ave_interact_d],
         }
-        # if  np.any(np.isnan(compare_reward_n)):
-        #     print(compare_reward_n)
-        # print(len(compare_reward_n),len(interact_reward_n))
 
-        if self.args.compare_reward:
+        if self.args.compare_reward_pattern !='none' :
             if self.args.seperate_interaction_reward:
                 combined_reward_n = np.column_stack(
                     (compare_reward_n, interact_reward_n)

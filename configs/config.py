@@ -119,16 +119,17 @@ def get_config():
         help="imitation of strength",
     )
     parser.add_argument(
-        "--compare_reward",
-        action="store_true",
-        default=False,
-        help="compare reward with avaeage level",
+        "--compare_reward_pattern",
+        type=str,
+        choices=["all", "neighbour",'none'],
+        default="all",
+        help="compare reward with average level",
     )
     parser.add_argument(
         "--seperate_interaction_reward",
         action="store_true",
         default=False,
-        help="compare reward with avaeage level",
+        help="if train interaction action with different reward",
     )
     parser.add_argument(
         "--init_distribution",
@@ -207,6 +208,13 @@ def get_config():
         default=0.1,
         help="The exploration rate of selection action at final",
     )  
+    parser.add_argument(
+        "--exploration_fraction",
+        type=float,
+        default=0.1,
+        help="The exploration rate of selection action at final",
+    )  
+
 
 
     # optimizer parameters

@@ -11,7 +11,7 @@ from datetime import datetime
 from envs.env_wrappers import DummyVecEnv, SubprocVecEnv
 from stable_baselines3.common.callbacks import CheckpointCallback
 import copy
-
+import random
 
 def make_run_env(all_args, raw_env, env_type=0):
     """
@@ -19,9 +19,10 @@ def make_run_env(all_args, raw_env, env_type=0):
     :param evn_type: wether env for training (0) or eval (1). Setting differnt seed
     """
 
+
     def get_env_fn(rank):
         def init_env():
-            env = raw_env(all_args, max_cycles=all_args.episode_length)
+            env = raw_env(all_args, max_cycles=all_args.episode_length,render_mode='train' if env_type==0 else 'eval')
             env.seed(all_args.seed * (1 + 4999 * env_type) + rank * 1000)
             return env
 
@@ -98,8 +99,25 @@ if __name__ == "__main__":
     all_args.memory_length = memory_length
     print("Agent Memory Length {}".format(all_args.memory_length))
 
+    reward_num=1
+    if all_args.train_pattern=='seperate':
+        model_num=2
+        if all_args.seperate_interaction_reward:
+            reward_num=2
+    else:
+        model_num=1
+
+    compare_rang=0
+    if all_args.compare_reward_pattern=='neighbour':
+        compare_rang=1
+    elif all_args.compare_reward_pattern=='all':
+        compare_rang=2
+
+    prefix='M{}R{}C{}'.format(model_num,reward_num,compare_rang)
+    experiment_name='E{}B{}'.format(all_args.episode_length,all_args.mini_batch)
+
     if all_args.use_wandb:
-        run_name = f"{all_args.algorithm_name}_{all_args.experiment_name}_{all_args.env_dim}_{all_args.dilemma_strength}(M{all_args.memory_length})[{all_args.seed}]"
+        run_name = f"{prefix}_{experiment_name}{all_args.experiment_name}_{all_args.env_dim}_{all_args.dilemma_strength}(M{all_args.memory_length})[{all_args.seed}]"
         run = wandb.init(
             config=all_args,
             project=all_args.env_name,
@@ -142,6 +160,7 @@ if __name__ == "__main__":
     torch.manual_seed(all_args.seed)
     torch.cuda.manual_seed_all(all_args.seed)
     np.random.seed(all_args.seed)
+    random.seed(all_args.seed)
 
     # env init
     if all_args.algorithm_name == "EGT":

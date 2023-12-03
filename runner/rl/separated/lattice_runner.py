@@ -147,7 +147,7 @@ class LatticeRunner(Runner):
                     #     [info["current_cooperation"][1] for info in infos]
                     # ),
                 }
-                if self.all_args.train_pattern != "strategy":
+                if self.all_args.train_pattern == "seperate":
                     rollout_info["rollout/interaction_exploration_rate"]= self.interaction_exploration_rate
 
                 self.log_rollout(rollout_info)
