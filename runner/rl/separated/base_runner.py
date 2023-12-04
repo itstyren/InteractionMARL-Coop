@@ -658,6 +658,7 @@ class Runner(object):
 
         :param path: Path to the pickled.
         """
+        np.random.seed(self.all_args.seed)
         # Open the zip file
         with zipfile.ZipFile(path, "r") as zipf:
             idx_list = np.arange(self.num_agents) 

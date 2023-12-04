@@ -81,6 +81,7 @@ class Strategy_DQN(BaseAlgorithm):
             gradient_steps,
             action_flag=action_flag
         )
+        torch.manual_seed(all_args.seed)
         self.device = device
         # self.policy = policy
         self.exploration_initial_eps = exploration_initial_eps
@@ -180,7 +181,8 @@ class Strategy_DQN(BaseAlgorithm):
         #     action = torch.tensor([self.policy.action_space.sample()])
         #     actions.append(action)
         # return torch.cat(actions, dim=0)        
-        
+        np.random.seed(self.all_args.seed)
+        torch.manual_seed(self.all_args.seed)
         if not deterministic and np.random.rand() < self.exploration_rate:
             actions = []
             # print(self.policy.action_space)
@@ -199,6 +201,9 @@ class Strategy_DQN(BaseAlgorithm):
         # return self.policy.predict(obs_buffer)
 
     def train(self, batch_size, replay_buffer,action_flag) -> None:
+        
+        torch.manual_seed(self.all_args.seed)
+        
         # Switch to train mode (this affects batch norm / dropout)
         self.policy.set_training_mode(True)
         lr, beta = self._update_schedule(self.policy.optimizer)

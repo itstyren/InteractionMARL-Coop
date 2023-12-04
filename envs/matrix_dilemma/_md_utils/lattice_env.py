@@ -204,8 +204,9 @@ class LatticeEnv(AECEnv):
             an initial observation
             some auxiliary information.
         """
-        if seed is not None:
-            self._seed(seed=seed)
+        # if seed is not None:
+        #     self._seed(seed=seed)
+        self._seed(seed=self.args.seed)
 
         # reset scenario (strategy and memory)
         self.scenario.reset_world(self.world)
@@ -215,7 +216,6 @@ class LatticeEnv(AECEnv):
         self.current_actions = [agent.action.s for agent in self.world.agents]
         # 15 mean interact with all neighbour
         self.current_interaction = [agent.action.ia for agent in self.world.agents]
-
         self._cumulative_rewards = {name: 0.0 for name in self.agents}
         self.terminations = {name: False for name in self.agents}
         self.truncations = {name: False for name in self.agents}

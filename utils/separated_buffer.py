@@ -168,6 +168,7 @@ class BaseBuffer(ABC):
         Sample a batch of experiences uniformly
         :return: sampled Replay Buffer
         """
+        np.random.seed(self.seed)
         if self.full:
             batch_inds = (
                 np.random.randint(1, self.buffer_size, size=batch_size) + self.step
@@ -277,7 +278,7 @@ class SeparatedReplayBuffer(BaseBuffer):
     ):
         # Adjust buffer size
         self.buffer_size = max(args.buffer_size // args.n_rollout_threads, 1)
-
+        self.seed=args.seed
         # if action is train seperate using differnt reward
         self.seperate_interaction_reward=args.seperate_interaction_reward
 
@@ -391,6 +392,7 @@ class PrioritizedReplayBuffer(SeparatedReplayBuffer):
         :param batch_size: Number of element to sample (minibatch size)
         :return: the replay exprience index list
         """
+        np.random.seed(self.seed)
         res = []
         # the sum over all priorities
         p_total = self._it_sum.sum(0, self.buffer_long - 1)

@@ -257,6 +257,7 @@ def worker(remote, parent_remote, env_fn_wrapper):
             if  'bool' in truncation.__class__.__name__  or 'bool' in termination.__class__.__name__:
                 if termination:
                     obs_n,i_obs_n,cl = env.reset(options='termination')
+                    # print(cl)
                 elif truncation:
                     obs_n,i_obs_n,cl = env.reset()
             remote.send((obs_n,i_obs_n,reward_n,termination,truncation,infos))

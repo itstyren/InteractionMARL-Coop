@@ -1,0 +1,152 @@
+{
+    "os": "Linux-5.15.133.1-microsoft-standard-WSL2-x86_64-with-glibc2.35",
+    "python": "3.10.13",
+    "heartbeatAt": "2023-12-04T14:21:23.863068",
+    "startedAt": "2023-12-04T14:21:21.998595",
+    "docker": null,
+    "cuda": null,
+    "args": [
+        "--cuda",
+        "--track",
+        "--capture-video"
+    ],
+    "state": "running",
+    "program": "/home/tyren/coding/self-model/inteaction-dynamics-in-social-dilemmas/b.py",
+    "codePathLocal": "b.py",
+    "codePath": "b.py",
+    "git": {
+        "remote": "https://github.com/itstyren/inteaction-dynamics-in-social-dilemmas.git",
+        "commit": "15a0627b832a9ccee3c9d9f19e298a3b75f5bb88"
+    },
+    "email": "ty.ren@outlook.com",
+    "root": "/home/tyren/coding/self-model/inteaction-dynamics-in-social-dilemmas",
+    "host": "DESKTOP-UOC2OOB",
+    "username": "tyren",
+    "executable": "/home/tyren/miniconda3/envs/idsd/bin/python",
+    "cpu_count": 10,
+    "cpu_count_logical": 20,
+    "cpu_freq": {
+        "current": 2687.9970000000008,
+        "min": 0.0,
+        "max": 0.0
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 2687.997,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2687.997,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2687.997,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2687.997,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2687.997,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2687.997,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2687.997,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2687.997,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2687.997,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2687.997,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2687.997,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2687.997,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2687.997,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2687.997,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2687.997,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2687.997,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2687.997,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2687.997,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2687.997,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2687.997,
+            "min": 0.0,
+            "max": 0.0
+        }
+    ],
+    "disk": {
+        "/": {
+            "total": 250.92389297485352,
+            "used": 69.36581039428711
+        }
+    },
+    "gpu": "NVIDIA RTX A1000 Laptop GPU",
+    "gpu_count": 1,
+    "gpu_devices": [
+        {
+            "name": "NVIDIA RTX A1000 Laptop GPU",
+            "memory_total": 4294967296
+        }
+    ],
+    "memory": {
+        "total": 7.582386016845703
+    }
+}

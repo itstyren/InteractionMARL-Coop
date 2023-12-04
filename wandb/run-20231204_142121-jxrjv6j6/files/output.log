@@ -1,0 +1,23 @@
+Traceback (most recent call last):
+  File "/home/tyren/miniconda3/envs/idsd/lib/python3.10/site-packages/gymnasium/wrappers/monitoring/video_recorder.py", line 55, in __init__
+    import moviepy  # noqa: F401
+ModuleNotFoundError: No module named 'moviepy'
+The above exception was the direct cause of the following exception:
+Traceback (most recent call last):
+  File "/home/tyren/coding/self-model/inteaction-dynamics-in-social-dilemmas/b.py", line 1193, in <module>
+    obs, _ = envs.reset(seed=args.seed)
+  File "/home/tyren/miniconda3/envs/idsd/lib/python3.10/site-packages/gymnasium/vector/vector_env.py", line 140, in reset
+    return self.reset_wait(seed=seed, options=options)
+  File "/home/tyren/miniconda3/envs/idsd/lib/python3.10/site-packages/gymnasium/vector/sync_vector_env.py", line 122, in reset_wait
+    observation, info = env.reset(**kwargs)
+  File "/home/tyren/miniconda3/envs/idsd/lib/python3.10/site-packages/gymnasium/wrappers/record_episode_statistics.py", line 78, in reset
+    obs, info = super().reset(**kwargs)
+  File "/home/tyren/miniconda3/envs/idsd/lib/python3.10/site-packages/gymnasium/core.py", line 467, in reset
+    return self.env.reset(seed=seed, options=options)
+  File "/home/tyren/miniconda3/envs/idsd/lib/python3.10/site-packages/gymnasium/wrappers/record_video.py", line 129, in reset
+    self.start_video_recorder()
+  File "/home/tyren/miniconda3/envs/idsd/lib/python3.10/site-packages/gymnasium/wrappers/record_video.py", line 141, in start_video_recorder
+    self.video_recorder = video_recorder.VideoRecorder(
+  File "/home/tyren/miniconda3/envs/idsd/lib/python3.10/site-packages/gymnasium/wrappers/monitoring/video_recorder.py", line 57, in __init__
+    raise error.DependencyNotInstalled(
+gymnasium.error.DependencyNotInstalled: moviepy is not installed, run `pip install moviepy`

@@ -2,13 +2,14 @@ from envs.matrix_dilemma._md_utils.utils import (
     make_env,
     gen_lattice_neighbours,
     parallel_wrapper_fn,
-    get_central_and_nearby_indices
+    get_central_and_nearby_indices,
 )
 from envs.matrix_dilemma._md_utils.lattice_env import LatticeEnv
 from envs.matrix_dilemma._md_utils.scenario import BaseScenario
 from envs.matrix_dilemma._md_utils.core import World, Agent
 import numpy as np
 import torch
+
 
 class raw_env(LatticeEnv):
     """
@@ -25,7 +26,7 @@ class raw_env(LatticeEnv):
             max_cycles=max_cycles,
             continuous_actions=False,
             render_mode=render_mode,
-            args=args
+            args=args,
         )
         self.metadata["name"] = "lattice_rl_v0"
 
@@ -37,16 +38,18 @@ parallel_env = parallel_wrapper_fn(env)
 class Scenario(BaseScenario):
     def __init__(self) -> None:
         super().__init__()
-                                          
+
     def make_world(self, args):
-        self.env_dim=args.env_dim
-        self.train_pattern=args.train_pattern
-        self.init_distribution=args.init_distribution
-        
+        self.env_dim = args.env_dim
+        self.train_pattern = args.train_pattern
+        self.init_distribution = args.init_distribution
+        self.memory_lenght = args.memory_length
+
         agent_num = args.env_dim**2
         world = World(np.array(args.initial_ratio), args.dilemma_strength)
         # add agent
         world.agents = [Agent(args) for i in range(agent_num)]
+        self.seed = args.seed
 
         for i, agent in enumerate(world.agents):
             agent.name = f"agent_{i}"
@@ -56,8 +59,8 @@ class Scenario(BaseScenario):
 
         # set neighbour index
         world.agents = gen_lattice_neighbours(world.agents)
-        for agent in world.agents:
-            agent.init_memory(np.array(args.initial_ratio))
+        # for agent in world.agents:
+        #     agent.init_memory(np.array(args.initial_ratio))
         # print('Agent Reward Memory Length {}'.format(len(agent.past_reward)))
         return world
 
@@ -65,11 +68,13 @@ class Scenario(BaseScenario):
         """
         random initial strategy and memory
         """
-        if self.init_distribution=='circle':
-            center_idx, nearby_indices=get_central_and_nearby_indices(self.env_dim,10)
-
+        if self.init_distribution == "circle":
+            center_idx, nearby_indices = get_central_and_nearby_indices(
+                self.env_dim, 10
+            )
+        np.random.seed(self.seed)
         for i, agent in enumerate(world.agents):
-            if self.init_distribution=='random':
+            if self.init_distribution == "random":
                 # random initial strategy
                 agent.action.s = int(
                     np.random.choice([0, 1], p=world.initial_ratio.ravel())
@@ -81,12 +86,26 @@ class Scenario(BaseScenario):
                 else:
                     agent.action.s = 1
 
-            # set interaction action         
-            if self.train_pattern=='strategy':
-                agent.action.ia=[1,1,1,1]
+            # set interaction action
+            if self.train_pattern == "strategy":
+                agent.action.ia = [1, 1, 1, 1]
             else:
-                agent.action.ia=np.random.randint(2, size=4)
-            agent.init_memory(world.initial_ratio)
+                agent.action.ia = np.random.randint(2, size=4)
+            neighbours_act_m = [
+                    # np.random.choice([0, 1], p=initial_ratio.ravel())
+                    np.random.choice([0, 1], p=world.initial_ratio.ravel())
+                    for _ in range(self.memory_lenght)
+                ]
+            
+            neighbours_intaction_m = np.random.randint(2, size=self.memory_lenght)
+            intaction_m = np.random.randint(2, size=self.memory_lenght)
+            self_act_m = [
+                np.random.choice([0, 1], p=world.initial_ratio.ravel())
+                for _ in range(self.memory_lenght)
+            ]
+            agent.init_memory(
+                neighbours_act_m, neighbours_intaction_m, intaction_m, self_act_m
+            )
 
     def reward(self, agent, world):
         """
@@ -103,12 +122,20 @@ class Scenario(BaseScenario):
             # else:
             #     agent.action.ia[neighbout_idx]=1
             if self.train_pattern == "together" or self.train_pattern == "seperate":
-                if agent.action.ia[neighbout_idx]==1 and world.agents[j].action.ia[world.agents[j].neighbours.index(agent.index)]==1:
-                    reward += world.payoff_matrix[agent.action.s, world.agents[j].action.s]
+                if (
+                    agent.action.ia[neighbout_idx] == 1
+                    and world.agents[j].action.ia[
+                        world.agents[j].neighbours.index(agent.index)
+                    ]
+                    == 1
+                ):
+                    reward += world.payoff_matrix[
+                        agent.action.s, world.agents[j].action.s
+                    ]
             else:
                 reward += world.payoff_matrix[agent.action.s, world.agents[j].action.s]
         return reward
-    
+
     def counter_reward(self, agent, world):
         """
         calculate current reward by matrix, play with all neighbours
@@ -120,10 +147,10 @@ class Scenario(BaseScenario):
         reward = 0.0
         for j in agent.neighbours:
             # print(reward)
-            reward += world.payoff_matrix[int(1-agent.action.s), world.agents[j].action.s]
+            reward += world.payoff_matrix[
+                int(1 - agent.action.s), world.agents[j].action.s
+            ]
         return reward
-
-
 
     def observation(self, agent, world):
         """
@@ -133,37 +160,35 @@ class Scenario(BaseScenario):
 
         :return obs (list): current neighbour strategy list, neighbour reward list
         """
-        for _,n_i in enumerate(agent.neighbours):
+        for _, n_i in enumerate(agent.neighbours):
             # agent_idx_in_neighbour=world.agents[n_i].neighbours.index(agent.index)
             agent.neighbours_act_m[_].append(world.agents[n_i].action.s)
             # agent.neighbours_intaction_m[_].append(world.agents[n_i].action.ia[agent_idx_in_neighbour])
             agent.intaction_m[_].append(agent.action.ia[_])
 
-
-        flat_neighbours_act_m = np.concatenate([list(d) for d in agent.neighbours_act_m])
+        flat_neighbours_act_m = np.concatenate(
+            [list(d) for d in agent.neighbours_act_m]
+        )
         # flat_neighbours_intaction_m=np.concatenate([list(d) for d in agent.neighbours_intaction_m])
-        flat_intaction_m=np.concatenate([list(d) for d in agent.intaction_m])
+        flat_intaction_m = np.concatenate([list(d) for d in agent.intaction_m])
 
         agent.self_act_m.append(agent.action.s)
         if self.train_pattern == "together":
-            obs={
-                'n_s':flat_neighbours_act_m,
-                'p_a':agent.self_act_m,
+            obs = {
+                "n_s": flat_neighbours_act_m,
+                "p_a": agent.self_act_m,
                 # 'p_r':agent.past_reward,
                 # 'n_interact':flat_neighbours_intaction_m,
-                'p_interact':flat_intaction_m
-
+                "p_interact": flat_intaction_m,
             }
         else:
-            obs={
-                'n_s':flat_neighbours_act_m,
-                'p_a':agent.self_act_m,
+            obs = {
+                "n_s": flat_neighbours_act_m,
+                "p_a": agent.self_act_m,
                 # 'p_r':agent.past_reward,
-
-            }            
+            }
         # print(obs)
         return obs
-
 
     def interact_observation(self, agent, world):
         """
@@ -173,7 +198,7 @@ class Scenario(BaseScenario):
 
         :return obs (list): current neighbour strategy list, neighbour reward list
         """
-        for _,n_i in enumerate(agent.neighbours):
+        for _, n_i in enumerate(agent.neighbours):
             # agent_idx_in_neighbour=world.agents[n_i].neighbours.index(agent.index)
             # agent.neighbours_act_m[_].append(world.agents[n_i].action.s)
             # agent.neighbours_intaction_m[_].append(world.agents[n_i].action.ia[agent_idx_in_neighbour])
@@ -181,17 +206,18 @@ class Scenario(BaseScenario):
 
         # print([list(d) for d in agent.neighbours_act_m])
 
-        flat_neighbours_act_m = np.concatenate([list(d) for d in agent.neighbours_act_m])
+        flat_neighbours_act_m = np.concatenate(
+            [list(d) for d in agent.neighbours_act_m]
+        )
         # flat_neighbours_intaction_m=np.concatenate([list(d) for d in agent.neighbours_intaction_m])
-        flat_intaction_m=np.concatenate([list(d) for d in agent.intaction_m])
+        flat_intaction_m = np.concatenate([list(d) for d in agent.intaction_m])
 
         agent.self_act_m.append(agent.action.s)
-        obs={
-                'n_s':flat_neighbours_act_m,
-                # 'p_a':agent.self_act_m,
-                # 'p_r':agent.past_reward,
-                # 'n_interact':flat_neighbours_intaction_m,
-                'p_interact':flat_intaction_m
-
-            }
+        obs = {
+            "n_s": flat_neighbours_act_m,
+            # 'p_a':agent.self_act_m,
+            # 'p_r':agent.past_reward,
+            # 'n_interact':flat_neighbours_intaction_m,
+            "p_interact": flat_intaction_m,
+        }
         return obs

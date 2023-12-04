@@ -1,0 +1,797 @@
+diff --git a/algorithms/dqn/dqn_trainer.py b/algorithms/dqn/dqn_trainer.py
+index 8a48ff8..a108367 100644
+--- a/algorithms/dqn/dqn_trainer.py
++++ b/algorithms/dqn/dqn_trainer.py
+@@ -81,6 +81,7 @@ class Strategy_DQN(BaseAlgorithm):
+             gradient_steps,
+             action_flag=action_flag
+         )
++        torch.manual_seed(all_args.seed)
+         self.device = device
+         # self.policy = policy
+         self.exploration_initial_eps = exploration_initial_eps
+@@ -180,7 +181,8 @@ class Strategy_DQN(BaseAlgorithm):
+         #     action = torch.tensor([self.policy.action_space.sample()])
+         #     actions.append(action)
+         # return torch.cat(actions, dim=0)        
+-        
++        np.random.seed(self.all_args.seed)
++        torch.manual_seed(self.all_args.seed)
+         if not deterministic and np.random.rand() < self.exploration_rate:
+             actions = []
+             # print(self.policy.action_space)
+@@ -199,6 +201,9 @@ class Strategy_DQN(BaseAlgorithm):
+         # return self.policy.predict(obs_buffer)
+ 
+     def train(self, batch_size, replay_buffer,action_flag) -> None:
++        
++        torch.manual_seed(self.all_args.seed)
++        
+         # Switch to train mode (this affects batch norm / dropout)
+         self.policy.set_training_mode(True)
+         lr, beta = self._update_schedule(self.policy.optimizer)
+diff --git a/b.py b/b.py
+index 4f76ff5..12c246c 100644
+--- a/b.py
++++ b/b.py
+@@ -983,21 +983,302 @@
+ # ex=exp_normalize(x)
+ # print(ex)
+ 
+-import numpy as np
++# import numpy as np
+ 
+-# Your 2D array
+-two_dim_array = np.array([
+-    [np.array([0, 1]), np.array([0, 1]), np.array([0, 1]), np.array([1, 1]), np.array([1, 1]),
+-     np.array([1, 1]), np.array([0, 1]), np.array([0, 1]), np.array([0, 1]), np.array([1, 0])],
+-    [np.array([1, 1]), np.array([1, 1]), np.array([1, 0]), np.array([0, 0]), np.array([1, 0]),
+-     np.array([1, 1]), np.array([1, 1]), np.array([1, 1]), np.array([1, 1]), np.array([0, 0])],
+-    [np.array([1, 0]), np.array([1, 1]), np.array([1, 1]), np.array([1, 1]), np.array([1, 1]),
+-     np.array([0, 1]), np.array([1, 1]), np.array([0, 0]), np.array([1, 0]), np.array([0, 0])]
+-])
+-
+-# Calculate the mean along the first axis (axis=0)
+-mean_array = np.mean(two_dim_array.flatten())
+-
+-# Print the resulting mean array
+-print("Mean Array:")
+-print(mean_array)
+\ No newline at end of file
++# # Your 2D array
++# two_dim_array = np.array([
++#     [np.array([0, 1]), np.array([0, 1]), np.array([0, 1]), np.array([1, 1]), np.array([1, 1]),
++#      np.array([1, 1]), np.array([0, 1]), np.array([0, 1]), np.array([0, 1]), np.array([1, 0])],
++#     [np.array([1, 1]), np.array([1, 1]), np.array([1, 0]), np.array([0, 0]), np.array([1, 0]),
++#      np.array([1, 1]), np.array([1, 1]), np.array([1, 1]), np.array([1, 1]), np.array([0, 0])],
++#     [np.array([1, 0]), np.array([1, 1]), np.array([1, 1]), np.array([1, 1]), np.array([1, 1]),
++#      np.array([0, 1]), np.array([1, 1]), np.array([0, 0]), np.array([1, 0]), np.array([0, 0])]
++# ])
++
++# # Calculate the mean along the first axis (axis=0)
++# mean_array = np.mean(two_dim_array.flatten())
++
++# # Print the resulting mean array
++# print("Mean Array:")
++# print(mean_array)
++
++import argparse,os,time,random
++import torch
++import numpy as np
++# agent setup
++import torch.nn as nn
++import torch.optim as optim
++# Base class that represent a buffer (rollout or replay)
++from stable_baselines3.common.buffers import ReplayBuffer
++import torch.nn.functional as F
++from torch.utils.tensorboard import SummaryWriter
++import gymnasium as gym
++from distutils.util import strtobool
++
++
++def parse_args():
++    '''
++    setup some common variables
++    '''
++    parser = argparse.ArgumentParser()
++    parser.add_argument("--exp-name", type=str, default=os.path.basename(__file__).rstrip(".py"),
++        help="the name of this experiment")
++    parser.add_argument("--seed", type=int, default=1,
++        help="seed of the experiment")
++    # two gpu related variables
++    parser.add_argument("--torch-deterministic", type=lambda x: bool(strtobool(x)), default=True, nargs="?", const=True,
++        help="if toggled, `torch.backends.cudnn.deterministic=False`")
++    parser.add_argument("--cuda", type=lambda x: bool(strtobool(x)), default=True, nargs="?", const=True,
++        help="if toggled, cuda will be enabled by default")
++    # Wnadb setup
++    parser.add_argument("--track", action='store_true', 
++        help="if toggled, this experiment will be tracked with Weights and Biases") # default is false
++    parser.add_argument("--save-model",  action='store_true',
++        help="whether to save model into the `runs/{run_name}` folder")
++    parser.add_argument("--wandb-project-name", type=str, default="DeepRL",
++        help="the wandb's project name")
++    parser.add_argument("--wandb-entity", type=str, default=None,
++        help="the entity (team) of wandb's project")
++    parser.add_argument("--capture-video", action='store_true',
++        help="weather to capture videos of the agent performances (check out `videos` folder)")    
++
++    # Algorithm specific arguments
++    parser.add_argument("--env-id", type=str, default="CartPole-v1",
++        help="the id of the environment")
++    parser.add_argument("--total-timesteps", type=int, default=500000,
++        help="total timesteps of the experiments")
++    parser.add_argument("--learning-rate", type=float, default=2.5e-4,
++        help="the learning rate of the optimizer")
++    parser.add_argument("--num-envs", type=int, default=1,
++        help="the number of parallel game environments")
++    parser.add_argument("--buffer-size", type=int, default=10000,
++        help="the replay memory buffer size")
++    # discount for all advantage function
++    parser.add_argument("--gamma", type=float, default=0.99,
++        help="the discount factor gamma")
++    parser.add_argument("--tau", type=float, default=1.,
++        help="the target network update rate")
++    parser.add_argument("--target-network-frequency", type=int, default=500,
++        help="the timesteps it takes to update the target network")
++    parser.add_argument("--batch-size", type=int, default=128,
++        help="the batch size of sample from the reply memory")
++    parser.add_argument("--start-e", type=float, default=1,
++        help="the starting epsilon for exploration")
++    parser.add_argument("--end-e", type=float, default=0.05,
++        help="the ending epsilon for exploration")
++    parser.add_argument("--exploration-fraction", type=float, default=0.5,
++        help="the fraction of `total-timesteps` it takes from start-e to go end-e")
++    parser.add_argument("--learning-starts", type=int, default=10000,
++        help="timestep to start learning")
++    parser.add_argument("--train-frequency", type=int, default=10,
++        help="the frequency of training")
++    
++    args = parser.parse_args()
++    # fmt: on
++    assert args.num_envs == 1, "vectorized envs are not supported at the moment"
++
++    return args
++
++
++def make_env(env_id, seed, idx, capture_video, run_name):
++    '''
++    define gym environment
++    '''
++    def thunk():
++        if capture_video and idx == 0:
++            env = gym.make(env_id, render_mode="rgb_array")
++            env = gym.wrappers.RecordVideo(env, f"videos/{run_name}")
++        else:
++            env = gym.make(env_id)
++        # Wrapper--keep track of cumulative rewards and episode lengths.
++        # At the end of an episode, the statistics of the episode will be added to info. 
++        env = gym.wrappers.RecordEpisodeStatistics(env)
++        env.action_space.seed(seed)
++
++        return env
++
++    return thunk
++
++
++class QNetwork(nn.Module):
++    '''
++    creat the Q-network
++    '''
++    def __init__(self, env):
++        super().__init__()
++        self.network = nn.Sequential(
++            nn.Linear(np.array(env.single_observation_space.shape).prod(), 120),
++            nn.ReLU(),
++            nn.Linear(120, 84),
++            nn.ReLU(),
++            nn.Linear(84, env.single_action_space.n),
++        )
++
++    def forward(self, x):
++        '''
++        implements the operations on input data in the forward method.
++        '''
++        return self.network(x)
++
++def linear_schedule(start_e: float, end_e: float, duration: int, t: int):
++    '''
++    calculate exploration epsilon for current time step
++
++    :param start_e: the starting epsilon for exploration
++    :param end_e: the ending epsilon for exploration
++    :param duration: exploration_fraction * total_timestep
++    :param t: current time step
++    '''
++    # calculate the slope of exploration fraction change 
++    slope = (end_e - start_e) / duration
++    return max(slope * t + start_e, end_e)
++
++if __name__ == "__main__":
++    import stable_baselines3 as sb3
++
++    args = parse_args()
++    run_name = f"{args.env_id}__{args.exp_name}__{args.seed}__{int(time.time())}"
++    if args.track:
++        import wandb
++
++        wandb.init(
++            project=args.wandb_project_name,
++            entity=args.wandb_entity,
++            sync_tensorboard=True,
++            config=vars(args),
++            name=run_name,
++            monitor_gym=True,
++            save_code=True,
++        )
++    writer = SummaryWriter(f"runs/{run_name}")
++    writer.add_text(
++        "hyperparameters",
++        "|param|value|\n|-|-|\n%s" % ("\n".join([f"|{key}|{value}|" for key, value in vars(args).items()])),
++    )
++
++    # TRY NOT TO MODIFY: seeding
++    random.seed(args.seed)
++    np.random.seed(args.seed)
++    torch.manual_seed(args.seed)
++    torch.backends.cudnn.deterministic = args.torch_deterministic
++
++    device = torch.device("cuda" if torch.cuda.is_available() and args.cuda else "cpu")
++
++    # env setup (Vectorized Environments)
++    envs = gym.vector.SyncVectorEnv(
++        [make_env(args.env_id, args.seed + i, i, args.capture_video, run_name) for i in range(args.num_envs)]
++    )
++    assert isinstance(envs.single_action_space, gym.spaces.Discrete), "only discrete action space is supported"
++    # Q-network
++    q_network = QNetwork(envs).to(device)
++    optimizer = optim.Adam(q_network.parameters(), lr=args.learning_rate)
++    # target-network
++    target_network = QNetwork(envs).to(device)
++    # copy from the Q-network
++    target_network.load_state_dict(q_network.state_dict())
++
++    # create the experience replay buffer
++    # buffer_size, obs_size, action_size, device, 
++    rb = ReplayBuffer(
++        args.buffer_size,
++        envs.single_observation_space,
++        envs.single_action_space,
++        device,
++        handle_timeout_termination=False,
++    )
++    
++    start_time = time.time()
++
++    # TRY NOT TO MODIFY: start the game
++    obs, _ = envs.reset(seed=args.seed)
++    for global_step in range(args.total_timesteps):
++        # calculate curret epsilon for exploration according to slope and current timestep
++        epsilon = linear_schedule(args.start_e, args.end_e, args.exploration_fraction * args.total_timesteps, global_step)
++        # select action according to epsilon-greed policy
++        # actuall output [one element]
++        if random.random() < epsilon:
++            # generates an array of actions by randomly sampling from the action space of an environment.
++            actions = np.array([envs.single_action_space.sample() for _ in range(envs.num_envs)])
++        else:
++            q_values = q_network(torch.Tensor(obs).to(device))
++            # returns the indices of the maximum values along dimension 1 
++            actions = torch.argmax(q_values, dim=1).cpu().numpy()
++
++        #execute the game and log data.
++        next_obs, rewards, terminated, truncated, infos = envs.step(actions)
++
++        # Record rewards for plotting purposes
++        if "final_info" in infos:
++            for info in infos["final_info"]:
++                # Skip the envs that are not done
++                if "episode" not in info:
++                    continue 
++                print(f"global_step={global_step}, episodic_return={info['episode']['r']}")
++                writer.add_scalar("charts/episodic_return", info["episode"]["r"], global_step)
++                writer.add_scalar("charts/episodic_length", info["episode"]["l"], global_step)
++                writer.add_scalar("charts/epsilon", epsilon, global_step)
++
++        real_next_obs = next_obs.copy()
++        for idx, d in enumerate(truncated):
++            if d:
++                real_next_obs[idx] = infos["final_observation"][idx]
++        # add data to replay buffer
++        rb.add(obs, real_next_obs, actions, rewards, terminated, infos)
++
++        # CRUCIAL step easy to overlook
++        obs = next_obs
++        
++        # training process (after learning_starts timesetp, then the training will be starteds)
++        if global_step > args.learning_starts:
++            # not every step will implement training
++            if global_step % args.train_frequency == 0:
++                # select a minibatch from replay buffer
++                data = rb.sample(args.batch_size)  
++                # calculate the loss       
++                with torch.no_grad():
++                    # Returns a namedtuple (values, indices) 
++                    target_max, _ = target_network(data.next_observations).max(dim=1)
++                    # approximate target value
++                    td_target = data.rewards.flatten() + args.gamma * target_max * (1 - data.dones.flatten())
++                # Gathers values along an axis specified by dim
++                # here dim=1, means selcet the action according column index
++                # squeeze() Returns a tensor with all specified dimensions of input of size 1 removed.
++                old_val = q_network(data.observations).gather(1, data.actions).squeeze()
++                # Measures the element-wise mean squared error.
++                loss = F.mse_loss(td_target, old_val)
++
++                # log
++                if global_step % 100 == 0:
++                    writer.add_scalar("losses/td_loss", loss, global_step)
++                    writer.add_scalar("losses/q_values", old_val.mean().item(), global_step)
++                    print("SPS:", int(global_step / (time.time() - start_time)))
++                    writer.add_scalar("charts/SPS", int(global_step / (time.time() - start_time)), global_step)
++
++                # optimize the model
++                optimizer.zero_grad()
++                # compute a backward pass on the loss function
++                # compute the gradients of the loss function
++                loss.backward()
++                # take a step with the optimizer
++                optimizer.step()
++
++            # update target network
++            if global_step % args.target_network_frequency == 0:
++                # parameters() makes all parameters accessible
++                # zip() iterate over multiple sequences return a single iterable object,
++                for target_network_param, q_network_param in zip(target_network.parameters(), q_network.parameters()):
++                    # update target network according update rate 
++                    target_network_param.data.copy_(
++                        args.tau * q_network_param.data + (1.0 - args.tau) * target_network_param.data
++                    )
++   
++    if args.save_model:
++        model_path = f"runs/{run_name}/{args.exp_name}.pt"   
++        torch.save(q_network.state_dict(), model_path)
++        print(f"model saved to {model_path}")
++        if args.track:
++            wandb.save(f"runs/{run_name}/{args.exp_name}.pt", policy="now")
++
++
++    envs.close()
++    writer.close()
+\ No newline at end of file
+diff --git a/envs/env_wrappers.py b/envs/env_wrappers.py
+index 2518858..cda53bd 100644
+--- a/envs/env_wrappers.py
++++ b/envs/env_wrappers.py
+@@ -257,6 +257,7 @@ def worker(remote, parent_remote, env_fn_wrapper):
+             if  'bool' in truncation.__class__.__name__  or 'bool' in termination.__class__.__name__:
+                 if termination:
+                     obs_n,i_obs_n,cl = env.reset(options='termination')
++                    # print(cl)
+                 elif truncation:
+                     obs_n,i_obs_n,cl = env.reset()
+             remote.send((obs_n,i_obs_n,reward_n,termination,truncation,infos))
+diff --git a/envs/matrix_dilemma/_md_utils/core.py b/envs/matrix_dilemma/_md_utils/core.py
+index b5622f8..33d54f1 100644
+--- a/envs/matrix_dilemma/_md_utils/core.py
++++ b/envs/matrix_dilemma/_md_utils/core.py
+@@ -1,7 +1,6 @@
+ import numpy as np
+ from collections import deque
+-import random
+-import copy
++
+ 
+ class Action:  # action of the agent
+     def __init__(self):
+@@ -22,36 +21,37 @@ class Agent:  # properties of agent entities
+         # Index of agnet's neighbour
+         self.neighbours = []
+         # the maximum action store in agent memory
+-        self.memory_alpha=args.memory_alpha
+-        self.memory_lenght=args.memory_length
++        self.memory_alpha = args.memory_alpha
++        self.memory_lenght = args.memory_length
++        self.seed = args.seed
++        np.random.seed(args.seed)
+         # wether RL or EGT agent
+-        self.type='RL'
++        self.type = "RL"
+ 
+         # # memory of neighbour action
+         # self.neighbours_act_m = deque(maxlen=self.memory_lenght)
+ 
+-    def init_memory(self, initial_ratio):
++    def init_memory(
++        self, neighbours_act_m, neighbours_intaction_m, intaction_m, self_act_m
++    ):
+         """
+         Initial memory list of all neighbour action with several past actions
+         """
+         self.neighbours_act_m = [
+             deque(
+-                [
+-                    # np.random.choice([0, 1], p=initial_ratio.ravel())
+-                    np.random.choice([0, 1], p=initial_ratio.ravel())
+-                    for _ in range(self.memory_lenght)
+-                ],
++                neighbours_act_m,
+                 maxlen=self.memory_lenght,
+             )
+             for _ in range(len(self.neighbours))
+         ]
++        # print(self.neighbours_act_m)
+         self.neighbours_intaction_m = [
+             deque(
+                 # [
+                 #     1
+                 #     for _ in range(self.memory_lenght)
+                 # ],
+-                np.random.randint(2, size=self.memory_lenght),
++                neighbours_intaction_m,
+                 maxlen=self.memory_lenght,
+             )
+             for _ in range(len(self.neighbours))
+@@ -63,24 +63,17 @@ class Agent:  # properties of agent entities
+                 #     1
+                 #     for _ in range(self.memory_lenght)
+                 # ],
+-                np.random.randint(2, size=self.memory_lenght),
++                intaction_m,
+                 maxlen=self.memory_lenght,
+             )
+             for _ in range(len(self.neighbours))
+         ]
+ 
+-        self.self_act_m=deque(
+-                [
+-                    np.random.choice([0, 1], p=initial_ratio.ravel())
+-                    for _ in range(self.memory_lenght)
+-                ],maxlen=self.memory_lenght
+-            )
+-        
++        self.self_act_m = deque(self_act_m, maxlen=self.memory_lenght)
+ 
+-        self.past_reward=deque([
+-                    -99
+-                    for _ in range(self.memory_lenght)
+-                ],maxlen=self.memory_lenght)
++        self.past_reward = deque(
++            [-99 for _ in range(self.memory_lenght)], maxlen=self.memory_lenght
++        )
+ 
+ 
+ class World:
+diff --git a/envs/matrix_dilemma/_md_utils/lattice_env.py b/envs/matrix_dilemma/_md_utils/lattice_env.py
+index 5a9af8e..37ea34b 100644
+--- a/envs/matrix_dilemma/_md_utils/lattice_env.py
++++ b/envs/matrix_dilemma/_md_utils/lattice_env.py
+@@ -204,8 +204,9 @@ class LatticeEnv(AECEnv):
+             an initial observation
+             some auxiliary information.
+         """
+-        if seed is not None:
+-            self._seed(seed=seed)
++        # if seed is not None:
++        #     self._seed(seed=seed)
++        self._seed(seed=self.args.seed)
+ 
+         # reset scenario (strategy and memory)
+         self.scenario.reset_world(self.world)
+@@ -215,7 +216,6 @@ class LatticeEnv(AECEnv):
+         self.current_actions = [agent.action.s for agent in self.world.agents]
+         # 15 mean interact with all neighbour
+         self.current_interaction = [agent.action.ia for agent in self.world.agents]
+-
+         self._cumulative_rewards = {name: 0.0 for name in self.agents}
+         self.terminations = {name: False for name in self.agents}
+         self.truncations = {name: False for name in self.agents}
+diff --git a/envs/matrix_dilemma/lattice_rl/lattice_rl.py b/envs/matrix_dilemma/lattice_rl/lattice_rl.py
+index ac4f184..2e9665c 100644
+--- a/envs/matrix_dilemma/lattice_rl/lattice_rl.py
++++ b/envs/matrix_dilemma/lattice_rl/lattice_rl.py
+@@ -2,7 +2,7 @@ from envs.matrix_dilemma._md_utils.utils import (
+     make_env,
+     gen_lattice_neighbours,
+     parallel_wrapper_fn,
+-    get_central_and_nearby_indices
++    get_central_and_nearby_indices,
+ )
+ from envs.matrix_dilemma._md_utils.lattice_env import LatticeEnv
+ from envs.matrix_dilemma._md_utils.scenario import BaseScenario
+@@ -10,6 +10,7 @@ from envs.matrix_dilemma._md_utils.core import World, Agent
+ import numpy as np
+ import torch
+ 
++
+ class raw_env(LatticeEnv):
+     """
+     A Matirx game environment has gym API for soical dilemma
+@@ -25,7 +26,7 @@ class raw_env(LatticeEnv):
+             max_cycles=max_cycles,
+             continuous_actions=False,
+             render_mode=render_mode,
+-            args=args
++            args=args,
+         )
+         self.metadata["name"] = "lattice_rl_v0"
+ 
+@@ -37,16 +38,18 @@ parallel_env = parallel_wrapper_fn(env)
+ class Scenario(BaseScenario):
+     def __init__(self) -> None:
+         super().__init__()
+-                                          
++
+     def make_world(self, args):
+-        self.env_dim=args.env_dim
+-        self.train_pattern=args.train_pattern
+-        self.init_distribution=args.init_distribution
+-        
++        self.env_dim = args.env_dim
++        self.train_pattern = args.train_pattern
++        self.init_distribution = args.init_distribution
++        self.memory_lenght = args.memory_length
++
+         agent_num = args.env_dim**2
+         world = World(np.array(args.initial_ratio), args.dilemma_strength)
+         # add agent
+         world.agents = [Agent(args) for i in range(agent_num)]
++        self.seed = args.seed
+ 
+         for i, agent in enumerate(world.agents):
+             agent.name = f"agent_{i}"
+@@ -56,8 +59,8 @@ class Scenario(BaseScenario):
+ 
+         # set neighbour index
+         world.agents = gen_lattice_neighbours(world.agents)
+-        for agent in world.agents:
+-            agent.init_memory(np.array(args.initial_ratio))
++        # for agent in world.agents:
++        #     agent.init_memory(np.array(args.initial_ratio))
+         # print('Agent Reward Memory Length {}'.format(len(agent.past_reward)))
+         return world
+ 
+@@ -65,11 +68,13 @@ class Scenario(BaseScenario):
+         """
+         random initial strategy and memory
+         """
+-        if self.init_distribution=='circle':
+-            center_idx, nearby_indices=get_central_and_nearby_indices(self.env_dim,10)
+-
++        if self.init_distribution == "circle":
++            center_idx, nearby_indices = get_central_and_nearby_indices(
++                self.env_dim, 10
++            )
++        np.random.seed(self.seed)
+         for i, agent in enumerate(world.agents):
+-            if self.init_distribution=='random':
++            if self.init_distribution == "random":
+                 # random initial strategy
+                 agent.action.s = int(
+                     np.random.choice([0, 1], p=world.initial_ratio.ravel())
+@@ -81,12 +86,28 @@ class Scenario(BaseScenario):
+                 else:
+                     agent.action.s = 1
+ 
+-            # set interaction action         
+-            if self.train_pattern=='strategy':
+-                agent.action.ia=[1,1,1,1]
++            # set interaction action
++            if self.train_pattern == "strategy":
++                agent.action.ia = [1, 1, 1, 1]
+             else:
+-                agent.action.ia=np.random.randint(2, size=4)
+-            agent.init_memory(world.initial_ratio)
++                agent.action.ia = np.random.randint(2, size=4)
++
++            neighbours_act_m = (
++                [
++                    # np.random.choice([0, 1], p=initial_ratio.ravel())
++                    np.random.choice([0, 1], p=world.initial_ratio.ravel())
++                    for _ in range(self.memory_lenght)
++                ],
++            )
++            neighbours_intaction_m = np.random.randint(2, size=self.memory_lenght)
++            intaction_m = np.random.randint(2, size=self.memory_lenght)
++            self_act_m = [
++                np.random.choice([0, 1], p=world.initial_ratio.ravel())
++                for _ in range(self.memory_lenght)
++            ]
++            agent.init_memory(
++                neighbours_act_m, neighbours_intaction_m, intaction_m, self_act_m
++            )
+ 
+     def reward(self, agent, world):
+         """
+@@ -103,12 +124,20 @@ class Scenario(BaseScenario):
+             # else:
+             #     agent.action.ia[neighbout_idx]=1
+             if self.train_pattern == "together" or self.train_pattern == "seperate":
+-                if agent.action.ia[neighbout_idx]==1 and world.agents[j].action.ia[world.agents[j].neighbours.index(agent.index)]==1:
+-                    reward += world.payoff_matrix[agent.action.s, world.agents[j].action.s]
++                if (
++                    agent.action.ia[neighbout_idx] == 1
++                    and world.agents[j].action.ia[
++                        world.agents[j].neighbours.index(agent.index)
++                    ]
++                    == 1
++                ):
++                    reward += world.payoff_matrix[
++                        agent.action.s, world.agents[j].action.s
++                    ]
+             else:
+                 reward += world.payoff_matrix[agent.action.s, world.agents[j].action.s]
+         return reward
+-    
++
+     def counter_reward(self, agent, world):
+         """
+         calculate current reward by matrix, play with all neighbours
+@@ -120,11 +149,11 @@ class Scenario(BaseScenario):
+         reward = 0.0
+         for j in agent.neighbours:
+             # print(reward)
+-            reward += world.payoff_matrix[int(1-agent.action.s), world.agents[j].action.s]
++            reward += world.payoff_matrix[
++                int(1 - agent.action.s), world.agents[j].action.s
++            ]
+         return reward
+ 
+-
+-
+     def observation(self, agent, world):
+         """
+         get obs info for current agent
+@@ -133,38 +162,36 @@ class Scenario(BaseScenario):
+ 
+         :return obs (list): current neighbour strategy list, neighbour reward list
+         """
+-        for _,n_i in enumerate(agent.neighbours):
++        for _, n_i in enumerate(agent.neighbours):
+             # agent_idx_in_neighbour=world.agents[n_i].neighbours.index(agent.index)
+             agent.neighbours_act_m[_].append(world.agents[n_i].action.s)
+             # agent.neighbours_intaction_m[_].append(world.agents[n_i].action.ia[agent_idx_in_neighbour])
+             agent.intaction_m[_].append(agent.action.ia[_])
+ 
+-
+-        flat_neighbours_act_m = np.concatenate([list(d) for d in agent.neighbours_act_m])
++        flat_neighbours_act_m = np.concatenate(
++            [list(d) for d in agent.neighbours_act_m]
++        )
+         # flat_neighbours_intaction_m=np.concatenate([list(d) for d in agent.neighbours_intaction_m])
+-        flat_intaction_m=np.concatenate([list(d) for d in agent.intaction_m])
++        flat_intaction_m = np.concatenate([list(d) for d in agent.intaction_m])
+ 
+         agent.self_act_m.append(agent.action.s)
+         if self.train_pattern == "together":
+-            obs={
+-                'n_s':flat_neighbours_act_m,
+-                'p_a':agent.self_act_m,
++            obs = {
++                "n_s": flat_neighbours_act_m,
++                "p_a": agent.self_act_m,
+                 # 'p_r':agent.past_reward,
+                 # 'n_interact':flat_neighbours_intaction_m,
+-                'p_interact':flat_intaction_m
+-
++                "p_interact": flat_intaction_m,
+             }
+         else:
+-            obs={
+-                'n_s':flat_neighbours_act_m,
+-                'p_a':agent.self_act_m,
++            obs = {
++                "n_s": flat_neighbours_act_m,
++                "p_a": agent.self_act_m,
+                 # 'p_r':agent.past_reward,
+-
+-            }            
++            }
+         # print(obs)
+         return obs
+ 
+-
+     def interact_observation(self, agent, world):
+         """
+         get obs info for current agent
+@@ -173,7 +200,7 @@ class Scenario(BaseScenario):
+ 
+         :return obs (list): current neighbour strategy list, neighbour reward list
+         """
+-        for _,n_i in enumerate(agent.neighbours):
++        for _, n_i in enumerate(agent.neighbours):
+             # agent_idx_in_neighbour=world.agents[n_i].neighbours.index(agent.index)
+             # agent.neighbours_act_m[_].append(world.agents[n_i].action.s)
+             # agent.neighbours_intaction_m[_].append(world.agents[n_i].action.ia[agent_idx_in_neighbour])
+@@ -181,17 +208,18 @@ class Scenario(BaseScenario):
+ 
+         # print([list(d) for d in agent.neighbours_act_m])
+ 
+-        flat_neighbours_act_m = np.concatenate([list(d) for d in agent.neighbours_act_m])
++        flat_neighbours_act_m = np.concatenate(
++            [list(d) for d in agent.neighbours_act_m]
++        )
+         # flat_neighbours_intaction_m=np.concatenate([list(d) for d in agent.neighbours_intaction_m])
+-        flat_intaction_m=np.concatenate([list(d) for d in agent.intaction_m])
++        flat_intaction_m = np.concatenate([list(d) for d in agent.intaction_m])
+ 
+         agent.self_act_m.append(agent.action.s)
+-        obs={
+-                'n_s':flat_neighbours_act_m,
+-                # 'p_a':agent.self_act_m,
+-                # 'p_r':agent.past_reward,
+-                # 'n_interact':flat_neighbours_intaction_m,
+-                'p_interact':flat_intaction_m
+-
+-            }
++        obs = {
++            "n_s": flat_neighbours_act_m,
++            # 'p_a':agent.self_act_m,
++            # 'p_r':agent.past_reward,
++            # 'n_interact':flat_neighbours_intaction_m,
++            "p_interact": flat_intaction_m,
++        }
+         return obs
+diff --git a/runner/rl/separated/base_runner.py b/runner/rl/separated/base_runner.py
+index 8395a9f..c890e66 100644
+--- a/runner/rl/separated/base_runner.py
++++ b/runner/rl/separated/base_runner.py
+@@ -658,6 +658,7 @@ class Runner(object):
+ 
+         :param path: Path to the pickled.
+         """
++        np.random.seed(self.all_args.seed)
+         # Open the zip file
+         with zipfile.ZipFile(path, "r") as zipf:
+             idx_list = np.arange(self.num_agents) 
+diff --git a/scripts/train_pd_scripts/train_lattice_rl.sh b/scripts/train_pd_scripts/train_lattice_rl.sh
+index 2f469d6..8480b2a 100755
+--- a/scripts/train_pd_scripts/train_lattice_rl.sh
++++ b/scripts/train_pd_scripts/train_lattice_rl.sh
+@@ -3,7 +3,7 @@ env='Lattice'
+ scenario='Test_PC'
+ algo='DQN'
+ exp="(e5e10)"
+-env_dim=15
++env_dim=12
+ dilemma_strength=1.2
+ seed_max=1
+ 
+@@ -13,9 +13,9 @@ echo "env is ${env}, scenario is ${scenario}, algorithm name is ${algo}, exp is
+ for seed in `seq ${seed_max}`;
+ do
+   echo "seed is ${seed}:"
+-  CUDA_VISIBLE_DEVICES=2 python ../train/train_lattice.py --env_dim ${env_dim} --algorithm_name ${algo} --log_interval 1 --num_env_steps 4000 \
++  CUDA_VISIBLE_DEVICES=2 python ../train/train_lattice.py --env_dim ${env_dim} --algorithm_name ${algo} --log_interval 1 --num_env_steps 10000 \
+       --env_name ${env} --scenario_name ${scenario} --user_name 'tyren' --episode_length 10 --cuda --n_rollout_threads 5 --use_linear_lr_decay\
+-      --mini_batch 32 --gradient_steps 1 --dilemma_strength ${dilemma_strength}  --target_update_interval 5000 --seed 1 --share_policy false \
++      --mini_batch 32 --gradient_steps 1 --dilemma_strength ${dilemma_strength}  --target_update_interval 2000 --seed 1 --share_policy false \
+       --experiment_name ${exp} --use_render --use_wandb --lr 0.1 --video_interval 5 --use_linear_beta_decay --replay_scheme 'prioritized' --learning_starts 100 \
+       --freq_type 'step' --train_freq 8 --prioritized_replay_alpha 0.6 --buffer_size 8000 --memory_alpha 0 --save_interval 0  \
+       --max_files 2 --rewards_pattern 'final' --normalize_pattern 'none' --train_pattern 'seperate'  --use_eval --eval_interval 1\
+diff --git a/utils/separated_buffer.py b/utils/separated_buffer.py
+index 4f72c22..9f81a52 100644
+--- a/utils/separated_buffer.py
++++ b/utils/separated_buffer.py
+@@ -168,6 +168,7 @@ class BaseBuffer(ABC):
+         Sample a batch of experiences uniformly
+         :return: sampled Replay Buffer
+         """
++        np.random.seed(self.seed)
+         if self.full:
+             batch_inds = (
+                 np.random.randint(1, self.buffer_size, size=batch_size) + self.step
+@@ -277,7 +278,7 @@ class SeparatedReplayBuffer(BaseBuffer):
+     ):
+         # Adjust buffer size
+         self.buffer_size = max(args.buffer_size // args.n_rollout_threads, 1)
+-
++        self.seed=args.seed
+         # if action is train seperate using differnt reward
+         self.seperate_interaction_reward=args.seperate_interaction_reward
+ 
+@@ -391,6 +392,7 @@ class PrioritizedReplayBuffer(SeparatedReplayBuffer):
+         :param batch_size: Number of element to sample (minibatch size)
+         :return: the replay exprience index list
+         """
++        np.random.seed(self.seed)
+         res = []
+         # the sum over all priorities
+         p_total = self._it_sum.sum(0, self.buffer_long - 1)

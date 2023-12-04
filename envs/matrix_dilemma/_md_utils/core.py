@@ -1,7 +1,6 @@
 import numpy as np
 from collections import deque
-import random
-import copy
+
 
 class Action:  # action of the agent
     def __init__(self):
@@ -22,36 +21,39 @@ class Agent:  # properties of agent entities
         # Index of agnet's neighbour
         self.neighbours = []
         # the maximum action store in agent memory
-        self.memory_alpha=args.memory_alpha
-        self.memory_lenght=args.memory_length
+        self.memory_alpha = args.memory_alpha
+        self.memory_lenght = args.memory_length
+        self.seed = args.seed
+        np.random.seed(args.seed)
         # wether RL or EGT agent
-        self.type='RL'
+        self.type = "RL"
 
         # # memory of neighbour action
         # self.neighbours_act_m = deque(maxlen=self.memory_lenght)
 
-    def init_memory(self, initial_ratio):
+    def init_memory(
+        self, neighbours_act_m, neighbours_intaction_m, intaction_m, self_act_m
+    ):
         """
         Initial memory list of all neighbour action with several past actions
         """
+        # print(neighbours_act_m, neighbours_intaction_m, intaction_m, self_act_m)
+
         self.neighbours_act_m = [
             deque(
-                [
-                    # np.random.choice([0, 1], p=initial_ratio.ravel())
-                    np.random.choice([0, 1], p=initial_ratio.ravel())
-                    for _ in range(self.memory_lenght)
-                ],
+                neighbours_act_m,
                 maxlen=self.memory_lenght,
             )
             for _ in range(len(self.neighbours))
         ]
+        # print(self.neighbours_act_m)
         self.neighbours_intaction_m = [
             deque(
                 # [
                 #     1
                 #     for _ in range(self.memory_lenght)
                 # ],
-                np.random.randint(2, size=self.memory_lenght),
+                neighbours_intaction_m,
                 maxlen=self.memory_lenght,
             )
             for _ in range(len(self.neighbours))
@@ -63,24 +65,17 @@ class Agent:  # properties of agent entities
                 #     1
                 #     for _ in range(self.memory_lenght)
                 # ],
-                np.random.randint(2, size=self.memory_lenght),
+                intaction_m,
                 maxlen=self.memory_lenght,
             )
             for _ in range(len(self.neighbours))
         ]
 
-        self.self_act_m=deque(
-                [
-                    np.random.choice([0, 1], p=initial_ratio.ravel())
-                    for _ in range(self.memory_lenght)
-                ],maxlen=self.memory_lenght
-            )
-        
+        self.self_act_m = deque(self_act_m, maxlen=self.memory_lenght)
 
-        self.past_reward=deque([
-                    -99
-                    for _ in range(self.memory_lenght)
-                ],maxlen=self.memory_lenght)
+        self.past_reward = deque(
+            [-99 for _ in range(self.memory_lenght)], maxlen=self.memory_lenght
+        )
 
 
 class World:
