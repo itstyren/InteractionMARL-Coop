@@ -47,7 +47,6 @@ class LatticeRunner(Runner):
             while should_collect_more_steps(
                 self.train_freq, num_collected_steps, num_collected_episodes
             ):
-                # print(step)
                 # if one episode end
                 if step >= self.episode_length:
                     # print('episode',episode)
@@ -57,20 +56,26 @@ class LatticeRunner(Runner):
                     # # train evey end of episode
                     # if self.all_args.algorithm_name != "DQN":
 
-                    # alway train at end of episode
-                    self.train_infos = self.train()
-                    self.log_train(self.train_infos)
-                    episode_loss.append(self.train_infos["train/loss"])
-                    episode_c_reward_during_training.append(
-                        self.train_infos["train/cooperation_reward"]
-                    )
-                    episode_d_reward_during_training.append(
-                        self.train_infos["train/defection_reward"]
-                    )
+                    # if (
+                    #     self.all_args.algorithm_name == "DQN"
+                    #     and self.num_timesteps > self.learning_starts
+                    #     and 
+                    # ):
+                    #     self.have_train = True
+                    #     # alway train at end of episode
+                    #     self.train_infos = self.train()
+                    #     self.log_train(self.train_infos)
 
                     if self.have_train:
                         # log information
                         if episode % self.log_interval == 0 or episode == self.episodes:
+                            episode_loss.append(self.train_infos["train/loss"])
+                            episode_c_reward_during_training.append(
+                                self.train_infos["train/cooperation_reward"]
+                            )
+                            episode_d_reward_during_training.append(
+                                self.train_infos["train/defection_reward"]
+                            )
                             extra_info = (
                                 np.mean(episode_loss),
                                 np.mean(episode_c_reward_during_training),
@@ -156,7 +161,8 @@ class LatticeRunner(Runner):
                 self.num_timesteps += self.n_rollout_threads
                 step += 1
                 num_collected_steps += 1
-
+            # print(num_collected_steps)
+            # print(self.num_timesteps)
             if (
                 self.all_args.algorithm_name == "DQN"
                 and self.num_timesteps > self.learning_starts

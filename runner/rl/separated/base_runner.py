@@ -64,9 +64,10 @@ class Runner(object):
         # Save train freq parameter, will be converted later to TrainFreq object
         train_freq = round_up(self.all_args.train_freq / self.n_rollout_threads, 0)
         self.train_freq = (train_freq, self.all_args.freq_type)
-
+        # print(self.train_freq)
         # Convert train freq parameter to TrainFreq object
         self._convert_train_freq()
+        # print(self.train_freq)
 
         # set learning rate (schedule or float)
         if self.all_args.use_linear_lr_decay:
@@ -324,6 +325,7 @@ class Runner(object):
         """
         Train policies with data in buffer.
         """
+        print(self.num_timesteps)
         train_infos = []
         for agent_id in torch.randperm(self.num_agents):
             if self.all_args.train_pattern == 'together':
@@ -658,7 +660,7 @@ class Runner(object):
 
         :param path: Path to the pickled.
         """
-        np.random.seed(self.all_args.seed)
+        # np.random.seed(self.all_args.seed)
         # Open the zip file
         with zipfile.ZipFile(path, "r") as zipf:
             idx_list = np.arange(self.num_agents) 

@@ -24,7 +24,7 @@ class Agent:  # properties of agent entities
         self.memory_alpha = args.memory_alpha
         self.memory_lenght = args.memory_length
         self.seed = args.seed
-        np.random.seed(args.seed)
+        # np.random.seed(args.seed)
         # wether RL or EGT agent
         self.type = "RL"
 
