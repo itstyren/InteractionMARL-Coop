@@ -176,7 +176,7 @@ def get_config():
         help="initial value of beta for prioritized replay buffer",
     )
     parser.add_argument(
-        "--use_linear_beta_decay",
+        "--use_linear_beta_growth",
         action="store_true",
         default=False,
         help="use a linear schedule on the learning rate",

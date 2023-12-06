@@ -2,7 +2,7 @@ import wandb
 import io
 import os
 from tensorboardX import SummaryWriter
-from utils.util import linear_schedule, round_up, FileManager, find_latest_file
+from utils.util import linear_schedule_to_0,linear_schedule_to_1, round_up, FileManager, find_latest_file
 import time, sys
 import torch
 import numpy as np
@@ -71,11 +71,11 @@ class Runner(object):
 
         # set learning rate (schedule or float)
         if self.all_args.use_linear_lr_decay:
-            self.lr = linear_schedule(self.all_args.lr)
+            self.lr = linear_schedule_to_0(self.all_args.lr)
         else:
             self.lr = self.all_args.lr
-        if self.all_args.use_linear_beta_decay:
-            self.beta = linear_schedule(self.all_args.prioritized_replay_beta)
+        if self.all_args.use_linear_beta_growth:
+            self.beta = linear_schedule_to_1(self.all_args.prioritized_replay_beta)
         else:
             self.beta = self.all_args.prioritized_replay_beta
 

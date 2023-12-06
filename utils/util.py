@@ -34,7 +34,7 @@ def get_shape_from_act_space(act_space):
     return act_shape
 
 
-def linear_schedule(initial_value: float) -> Callable[[float], float]:
+def linear_schedule_to_0(initial_value: float) -> Callable[[float], float]:
     """
     Linear learning rate schedule.
 
@@ -53,6 +53,29 @@ def linear_schedule(initial_value: float) -> Callable[[float], float]:
         return progress_remaining * initial_value
 
     return func
+
+
+def linear_schedule_to_1(initial_value: float) -> Callable[[float], float]:
+    """
+    Increase to one learning rate schedule.
+
+    :param initial_value: Initial learning rate.
+    :return: Schedule that computes
+      the current learning rate depending on remaining progress.
+    """
+
+    def func(progress_remaining: float) -> float:
+        """
+        Progress will decrease from 1 (beginning) to 0.
+
+        :param progress_remaining: Remaining progress, ranging from 1 to 0.
+        :return: Current learning rate.
+        """
+        return (1 - progress_remaining) * (1 - initial_value) + initial_value
+
+    return func
+
+
 
 
 def preprocess_obs(
