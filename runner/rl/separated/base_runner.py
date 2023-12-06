@@ -325,7 +325,7 @@ class Runner(object):
         """
         Train policies with data in buffer.
         """
-        print(self.num_timesteps)
+        # print(self.num_timesteps)
         train_infos = []
         for agent_id in torch.randperm(self.num_agents):
             if self.all_args.train_pattern == 'together':
