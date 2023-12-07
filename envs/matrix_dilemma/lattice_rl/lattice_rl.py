@@ -72,7 +72,7 @@ class Scenario(BaseScenario):
             center_idx, nearby_indices = get_central_and_nearby_indices(
                 self.env_dim, 10
             )
-        # np.random.seed(self.seed)
+        np.random.seed(self.seed)
         for i, agent in enumerate(world.agents):
             if self.init_distribution == "random":
                 # random initial strategy
