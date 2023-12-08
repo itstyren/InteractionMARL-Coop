@@ -24,6 +24,7 @@ class LatticeRunner(Runner):
     def __init__(self, config):
         super(LatticeRunner, self).__init__(config)
         self.last_best_mean_payoff = -np.inf
+        self.last_best_cooperation_level = -np.inf
         self.no_improvement_evals = 0
         self.max_no_improvement_evals=3
         self.continue_training=True
@@ -564,48 +565,59 @@ class LatticeRunner(Runner):
         eval_log_infos = {}
         eval_log_infos["eval_result/average_cooperation_length"] = average_robutness[0]
         eval_log_infos["eval_result/average_defection_length"] = average_robutness[1]
-        eval_log_infos["eval_result/episode_cooperation_level"] = 1 - np.mean(
+
+        self.best_mean_cooperation_level=1 - np.mean(
             eval_episode_acts
         )
+        eval_log_infos["eval_result/episode_cooperation_level"] = self.best_mean_cooperation_level
+
         eval_log_infos[
             "eval_result/episode_final_cooperation_performance"
         ] = 1 - np.mean(concatenated_final_acts)
 
         if not np.isnan(c_p).all():
             cooperation_episode_payoff=np.nanmean(c_p)
-            arrays_to_concatenate = [c_p]
+            episode_payoff_concatenate = [c_p]
         else:
             cooperation_episode_payoff=None
-            arrays_to_concatenate = []
+            episode_payoff_concatenate = []
         eval_log_infos["eval_payoff/cooperation_episode_payoff"] = cooperation_episode_payoff
 
         # Check if d_p is not None, then include it in the concatenation
         if not np.isnan(d_p).all():
             defection_episode_payoff=np.nanmean(d_p)
-            arrays_to_concatenate.append(d_p)
+            episode_payoff_concatenate.append(d_p)
         else:
             defection_episode_payoff=None
         eval_log_infos["eval_payoff/defection_episode_payoff"] = defection_episode_payoff
         
-        # print('c_p',c_p,'\n')
-        # print('d_p',d_p,'\n')
-        # print('arrays_to_concatenate',arrays_to_concatenate,'\n')
         self.best_mean_payoff= np.nanmean(
-            np.concatenate(arrays_to_concatenate, axis=0)
+            np.concatenate(episode_payoff_concatenate, axis=0)
         )
         eval_log_infos["eval_payoff/episode_payoff"] = self.best_mean_payoff
 
-        print('c_interaction',c_interaction)
-        print('d_interaction',d_interaction)
-        print(np.concatenate((c_interaction, d_interaction), axis=0))
-        eval_log_infos["eval_interaction/cooperation_interaction_ratio"] = np.mean(
-            c_interaction
-        )
-        eval_log_infos["eval_interaction/defection_interaction_ratio"] = np.mean(
-            d_interaction
-        )
+        if not np.isnan(c_interaction).all():
+            cooperation_interaction_ratio=np.nanmean(c_interaction)
+            interaction_ratio_concatenate = [c_interaction]
+        else:
+            cooperation_interaction_ratio=None
+            interaction_ratio_concatenate = []
+        eval_log_infos["eval_interaction/cooperation_interaction_ratio"] = cooperation_interaction_ratio
+
+        if not np.isnan(d_interaction).all():
+            defection_interaction_ratio=np.nanmean(d_interaction)
+            interaction_ratio_concatenate.append(d_interaction)
+        else:
+            defection_interaction_ratio=None
+        eval_log_infos["eval_payoff/defection_interaction_ratio"] = defection_episode_payoff
+
+        # print('c_interaction',c_interaction)
+        # print('d_interaction',d_interaction)
+        # print(np.concatenate(interaction_ratio_concatenate, axis=0))
+
+        eval_log_infos["eval_interaction/defection_interaction_ratio"] = defection_interaction_ratio
         eval_log_infos["eval_interaction/average_interaction"] = np.mean(
-            np.concatenate((c_interaction, d_interaction), axis=0)
+            np.concatenate(interaction_ratio_concatenate, axis=0)
         )
 
         # print(eval_log_infos)
@@ -622,8 +634,9 @@ class LatticeRunner(Runner):
         '''
 
         continue_training = True
+        c_l='{:.2f}'.format(self.best_mean_cooperation_level) 
 
-        if self.best_mean_payoff > self.last_best_mean_payoff:
+        if self.best_mean_payoff > self.last_best_mean_payoff or c_l!=self.last_best_cooperation_level:
             self.no_improvement_evals = 0
         else:
             self.no_improvement_evals += 1
@@ -631,6 +644,7 @@ class LatticeRunner(Runner):
                 continue_training = False
         # print(self.no_improvement_evals)
         self.last_best_mean_payoff = self.best_mean_payoff
+        self.last_best_cooperation_level=c_l
 
         if not continue_training:
             print(
