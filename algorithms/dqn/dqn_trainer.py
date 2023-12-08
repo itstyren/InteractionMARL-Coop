@@ -28,8 +28,6 @@ class Strategy_DQN(BaseAlgorithm):
         of the current progress remaining (from 1 to 0)
     :param device: (torch.device) specifies the device to run on (cpu/gpu).
     :param gamma: the discount factor
-    :param train_freq: Update the model every ``train_freq`` steps. Alternatively pass a tuple of frequency and unit
-        like ``(5, "step")`` or ``(2, "episode")``.
     :param gradient_steps: How many gradient steps to do after each rollout (see ``train_freq``)
         Set to ``-1`` means to do as many gradient steps as steps done in the environment
         during the rollout.
