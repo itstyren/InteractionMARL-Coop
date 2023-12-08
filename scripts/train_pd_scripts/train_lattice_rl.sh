@@ -3,8 +3,8 @@ env='Lattice'
 scenario='Test_PC_twoMode'
 algo='DQN'
 exp="(e5e10)"
-env_dim=10
-dilemma_strength=1.30
+env_dim=8
+dilemma_strength=1.0
 seed_max=1
 
 

@@ -130,6 +130,46 @@ class CheckpointCallback(BaseCallback):
 
         return True
 
+
+class StopTrainingOnNoModelImprovement(BaseCallback):
+    ''''
+    Stop the training early if there is no new best model (new best mean reward) after more than N consecutive evaluations.
+    
+    :param max_no_improvement_evals: Maximum number of consecutive evaluations without a new best model.
+    :param min_evals: Number of evaluations before start to count evaluations without improvements.
+    :param verbose: Verbosity level: 0 for no output, 1 for indicating when training ended because no new best model
+    '''
+
+    def __init__(self, max_no_improvement_evals: int, min_evals: int = 0, verbose: int = 0):
+        super().__init__(verbose=verbose)
+        self.max_no_improvement_evals = max_no_improvement_evals
+        self.min_evals = min_evals
+        self.last_best_mean_reward = -np.inf
+        self.no_improvement_evals = 0
+
+    def _on_step(self) -> bool:
+
+        continue_training = True
+
+        if self.n_calls > self.min_evals:
+            if self.parent.best_mean_reward > self.last_best_mean_reward:
+                self.no_improvement_evals = 0
+            else:
+                self.no_improvement_evals += 1
+                if self.no_improvement_evals > self.max_no_improvement_evals:
+                    continue_training = False
+
+        self.last_best_mean_reward = self.parent.best_mean_reward
+
+        if self.verbose >= 1 and not continue_training:
+            print(
+                f"Stopping training because there was no new best model in the last {self.no_improvement_evals:d} evaluations"
+            )
+
+        return continue_training
+
+
+
 class ZipFileManager:
     def __init__(self, max_zip_files=5):
         self.max_zip_files = max_zip_files

@@ -23,6 +23,10 @@ class LatticeRunner(Runner):
 
     def __init__(self, config):
         super(LatticeRunner, self).__init__(config)
+        self.last_best_mean_payoff = -np.inf
+        self.no_improvement_evals = 0
+        self.max_no_improvement_evals=3
+        self.continue_training=True
 
     def run(self):
         # initializing
@@ -43,6 +47,9 @@ class LatticeRunner(Runner):
         self.eval_interaction_log = []
 
         while self.num_timesteps < self.num_env_steps:
+            if not self.continue_training:
+                break
+
             num_collected_steps, num_collected_episodes = 0, 0
             while should_collect_more_steps(
                 self.train_freq, num_collected_steps, num_collected_episodes
@@ -563,11 +570,20 @@ class LatticeRunner(Runner):
         eval_log_infos[
             "eval_result/episode_final_cooperation_performance"
         ] = 1 - np.mean(concatenated_final_acts)
-        eval_log_infos["eval_payoff/cooperation_episode_payoff"] = np.mean(c_p)
+        eval_log_infos["eval_payoff/cooperation_episode_payoff"] = np.mean(c_p) 
         eval_log_infos["eval_payoff/defection_episode_payoff"] = np.mean(d_p)
-        eval_log_infos["eval_payoff/episode_payoff"] = np.mean(
-            np.concatenate((c_p, d_p), axis=0)
+        if c_p is not None:
+            arrays_to_concatenate = [c_p]
+        else:
+            arrays_to_concatenate = []
+
+        # Check if d_p is not None, then include it in the concatenation
+        if d_p is not None:
+            arrays_to_concatenate.append(d_p)
+        self.best_mean_payoff= np.mean(
+            np.concatenate(arrays_to_concatenate, axis=0)
         )
+        eval_log_infos["eval_payoff/episode_payoff"] = self.best_mean_payoff
         eval_log_infos["eval_interaction/cooperation_interaction_ratio"] = np.mean(
             c_interaction
         )
@@ -580,8 +596,35 @@ class LatticeRunner(Runner):
 
         # print(eval_log_infos)
         self.log_train(eval_log_infos)
+        
+        self.StopTrainingOnNoModelImprovement()
         # print(average_robutness)
         # breakpoint()
+        
+    def StopTrainingOnNoModelImprovement(self):
+        '''
+        Stop the training early if there is no new best model (new best mean reward)
+        after more than N consecutive evaluations.
+        '''
+
+        continue_training = True
+
+        if self.best_mean_payoff > self.last_best_mean_payoff:
+            self.no_improvement_evals = 0
+        else:
+            self.no_improvement_evals += 1
+            if self.no_improvement_evals > self.max_no_improvement_evals:
+                continue_training = False
+
+        self.last_best_mean_payoff = self.best_mean_payoff
+
+        if not continue_training:
+            print(
+                f"Stopping training because there was no new best model in the last {self.no_improvement_evals:d} evaluations"
+            )
+
+        self.continue_training=continue_training
+
 
     def extract_buffer(self):
         """
