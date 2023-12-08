@@ -294,7 +294,7 @@ class LatticeRunner(Runner):
             if self.all_args.train_pattern != "strategy":
                 interactions.append(agent_interaction)
             # print(agent_interaction)
-
+        # print('strategy_coop_based',strategy_coop_based)
         # Calculate the average strategy based on cooperation for all agents
         self.avg_strategy_coop_based = np.nanmean(strategy_coop_based, axis=0)
 
@@ -302,7 +302,7 @@ class LatticeRunner(Runner):
         if self.all_args.train_pattern == "seperate":
             self.interaction_exploration_rate = np.mean(
                 np.array(interaction_exploration_rates)
-            )
+            )   
         self.target_update = target_update
 
         return (
@@ -570,20 +570,34 @@ class LatticeRunner(Runner):
         eval_log_infos[
             "eval_result/episode_final_cooperation_performance"
         ] = 1 - np.mean(concatenated_final_acts)
-        eval_log_infos["eval_payoff/cooperation_episode_payoff"] = np.mean(c_p) 
-        eval_log_infos["eval_payoff/defection_episode_payoff"] = np.mean(d_p)
-        if c_p is not None:
+
+        if not np.isnan(c_p).all():
+            cooperation_episode_payoff=np.nanmean(c_p)
             arrays_to_concatenate = [c_p]
         else:
+            cooperation_episode_payoff=None
             arrays_to_concatenate = []
+        eval_log_infos["eval_payoff/cooperation_episode_payoff"] = cooperation_episode_payoff
 
         # Check if d_p is not None, then include it in the concatenation
-        if d_p is not None:
+        if not np.isnan(d_p).all():
+            defection_episode_payoff=np.nanmean(d_p)
             arrays_to_concatenate.append(d_p)
-        self.best_mean_payoff= np.mean(
+        else:
+            defection_episode_payoff=None
+        eval_log_infos["eval_payoff/defection_episode_payoff"] = defection_episode_payoff
+        
+        # print('c_p',c_p,'\n')
+        # print('d_p',d_p,'\n')
+        # print('arrays_to_concatenate',arrays_to_concatenate,'\n')
+        self.best_mean_payoff= np.nanmean(
             np.concatenate(arrays_to_concatenate, axis=0)
         )
         eval_log_infos["eval_payoff/episode_payoff"] = self.best_mean_payoff
+
+        print('c_interaction',c_interaction)
+        print('d_interaction',d_interaction)
+        print(np.concatenate((c_interaction, d_interaction), axis=0))
         eval_log_infos["eval_interaction/cooperation_interaction_ratio"] = np.mean(
             c_interaction
         )
@@ -615,7 +629,7 @@ class LatticeRunner(Runner):
             self.no_improvement_evals += 1
             if self.no_improvement_evals > self.max_no_improvement_evals:
                 continue_training = False
-
+        # print(self.no_improvement_evals)
         self.last_best_mean_payoff = self.best_mean_payoff
 
         if not continue_training:

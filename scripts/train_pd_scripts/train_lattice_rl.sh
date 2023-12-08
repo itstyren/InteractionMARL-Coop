@@ -17,7 +17,7 @@ do
       --env_name ${env} --scenario_name ${scenario} --user_name 'tyren' --episode_length 10 --cuda --n_rollout_threads 8 --use_linear_lr_decay\
       --mini_batch 32 --gradient_steps 1 --dilemma_strength ${dilemma_strength}  --target_update_interval 2000 --seed 1 --share_policy false \
       --experiment_name ${exp} --use_render --use_wandb --lr 0.1 --video_interval 10 --use_linear_beta_growth --replay_scheme 'prioritized' --learning_starts 200 \
-      --freq_type 'step' --train_freq 24 --prioritized_replay_alpha 0.6 --buffer_size 10000 --memory_alpha 0.6 --save_interval 0  \
+      --freq_type 'step' --train_freq 24 --prioritized_replay_alpha 0.6 --buffer_size 10000 --memory_alpha 0 --save_interval 0  \
       --max_files 2 --rewards_pattern 'final' --normalize_pattern 'none' --train_pattern 'together'  --use_eval --eval_interval 10\
       --interact_pattern 'together'  --compare_reward_pattern 'all' --n_eval_rollout_threads 2 \
       --exploration_fraction 0.2 --strategy_final_exploration 0.05
