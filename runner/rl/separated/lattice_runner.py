@@ -26,7 +26,7 @@ class LatticeRunner(Runner):
         self.last_best_mean_payoff = -np.inf
         self.last_best_cooperation_level = -np.inf
         self.no_improvement_evals = 0
-        self.max_no_improvement_evals=3
+        self.max_no_improvement_evals=2
         self.continue_training=True
 
     def run(self):
@@ -634,9 +634,10 @@ class LatticeRunner(Runner):
         '''
 
         continue_training = True
-        c_l='{:.2f}'.format(self.best_mean_cooperation_level) 
+        c_l='{:.2f}'.format(self.best_mean_cooperation_level)
+        c_l = float(c_l)
 
-        if self.best_mean_payoff > self.last_best_mean_payoff or c_l!=self.last_best_cooperation_level:
+        if self.best_mean_payoff > self.last_best_mean_payoff or 0.05 < c_l < 0.95:
             self.no_improvement_evals = 0
         else:
             self.no_improvement_evals += 1
