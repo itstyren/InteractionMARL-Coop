@@ -385,8 +385,61 @@
 # # Convert the PyTorch tensor to a CPU float tensor and detach gradients
 # cpu_float_tensor = output.cpu().detach().float()
 # print(cpu_float_tensor.numpy())
-import numpy as np
+# import numpy as np
 
-strategy_reward = [[], []]
-strategy_mean_reward = [np.nanmean(s_r) if s_r else 0 for s_r in strategy_reward]
-print(strategy_mean_reward)
+# strategy_reward = [[], []]
+# strategy_mean_reward = [np.nanmean(s_r) if s_r else 0 for s_r in strategy_reward]
+# print(strategy_mean_reward)
+
+from mpi4py import MPI
+import numpy as np
+import os
+import time
+
+# Initialize MPI
+comm = MPI.COMM_WORLD
+rank = comm.Get_rank()
+size = comm.Get_size()
+
+# Set the number of OpenMP threads
+os.environ['OMP_NUM_THREADS'] = '4'
+
+# Each process will execute this
+def monte_carlo_pi(num_samples):
+    np.random.seed()  # Ensures each process gets a different seed
+    inside_circle = 0
+
+    for _ in range(num_samples):
+        x, y = np.random.rand(2)  # Generate random point
+        if x*x + y*y <= 1:
+            inside_circle += 1
+    
+    return inside_circle
+
+if rank == 0:
+    total_samples = 100000000  # Total number of samples
+    samples_per_process = total_samples // size
+    extras = total_samples % size
+else:
+    samples_per_process = None
+    extras = None
+
+# Broadcast the number of samples each process should handle
+samples_per_process = comm.bcast(samples_per_process, root=0)
+extras = comm.bcast(extras, root=0)
+
+# Distribute the extra samples among the first few processes
+if rank < extras:
+    samples_per_process += 1
+
+start_time = time.time()
+local_count = monte_carlo_pi(samples_per_process)
+end_time = time.time()
+
+# Gather results at root process
+total_count = comm.reduce(local_count, op=MPI.SUM, root=0)
+
+if rank == 0:
+    pi_estimate = (4 * total_count) / total_samples
+    print(f"Estimated π: {pi_estimate}")
+    print(f"Time taken: {end_time - start_time} seconds")

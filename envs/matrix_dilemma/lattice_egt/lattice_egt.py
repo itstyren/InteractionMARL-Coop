@@ -37,7 +37,9 @@ parallel_env = parallel_wrapper_fn(env)
 class Scenario(BaseScenario):
     def make_world(self, args):
         self.env_dim=args.env_dim
+        self.train_pattern = args.train_pattern
         self.init_distribution=args.init_distribution
+        self.memory_lenght = args.memory_length
 
         agent_num = args.env_dim**2
         
@@ -55,7 +57,24 @@ class Scenario(BaseScenario):
         # set neighbour index
         world.agents = gen_lattice_neighbours(world.agents)
         for agent in world.agents:
-            agent.init_memory(np.array(args.initial_ratio))
+            # set interaction action
+            if self.train_pattern == "strategy":
+                agent.action.ia = [1, 1, 1, 1]
+            else:
+                agent.action.ia = np.random.randint(2, size=4)
+            neighbours_act_m = [
+                    # np.random.choice([0, 1], p=initial_ratio.ravel())
+                    np.random.choice([0, 1], p=world.initial_ratio.ravel())
+                    for _ in range(self.memory_lenght)
+                ]
+            
+            neighbours_intaction_m = np.random.randint(2, size=self.memory_lenght)
+            intaction_m = np.random.randint(2, size=self.memory_lenght)
+            self_act_m = [
+                np.random.choice([0, 1], p=world.initial_ratio.ravel())
+                for _ in range(self.memory_lenght)
+            ]
+            agent.init_memory(neighbours_act_m, neighbours_intaction_m, intaction_m, self_act_m)
         return world
 
     def reset_world(self, world):

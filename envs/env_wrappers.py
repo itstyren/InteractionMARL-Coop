@@ -126,18 +126,18 @@ class DummyVecEnv(ShareVecEnv):
             if result is None:
                 pass
             else:
-                 obs_n, reward_n,termination,truncation,infos  = result
+                 obs,i_obs,rews,termination,truncation,infos  = result
                 
             # if  'bool' in truncation.__class__.__name__  or 'bool' in termination.__class__.__name__:
             #     if termination or truncation:
             #         obs_n,cl = self.env.reset()
 
         self.actions = None
-        return obs_n, reward_n,termination,truncation,infos
+        return obs, rews,termination,truncation,infos
 
     def reset(self):
         results = [env.reset() for env in self.envs]
-        obs,coop_l=zip(*results)
+        obs,interact_obs,coop_l=zip(*results)
         return np.stack(obs),np.stack(coop_l)
 
     def close(self):

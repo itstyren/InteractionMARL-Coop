@@ -409,9 +409,9 @@ class LatticeEnv(AECEnv):
         # Check if the state is below a certain threshold for termination
         termination = False
         coop_level = self.state()
-        # if coop_level < 0.05 and self.render_mode=='train':
-        #     # print('cooperation level',coop_level)
-        #     termination = True
+        if coop_level < 0.05 and self.render_mode=='train':
+            # print('cooperation level',coop_level)
+            termination = True
 
         interaction_n = self.count_effective_interaction()
         # Calculate the element-wise product
