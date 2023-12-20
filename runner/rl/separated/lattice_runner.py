@@ -550,6 +550,10 @@ class LatticeRunner(Runner):
         effect_c_interaction = []
         effect_d_interaction = []
 
+        cc_intensity=[]
+        cd_intensity=[]
+        dd_intensity=[]
+
         for infos in eval_episode_info:
             for info in infos:
                 if "cumulative_payoffs" in info:
@@ -560,9 +564,12 @@ class LatticeRunner(Runner):
 
                 c_interaction.append(info["strategy_based_interaction"][0])
                 d_interaction.append(info["strategy_based_interaction"][1])
-
                 effect_c_interaction.append(info["effective_interaction"][0])
                 effect_d_interaction.append(info["effective_interaction"][1])
+
+                cc_intensity.append(info["average_intensity"][0])
+                cd_intensity.append(info["average_intensity"][1])
+                dd_intensity.append(info["average_intensity"][2])                
 
         # concatenated_acts = np.concatenate(np.array(eval_episode_acts).flatten())
         concatenated_final_acts = np.concatenate(
@@ -617,19 +624,34 @@ class LatticeRunner(Runner):
             interaction_ratio_concatenate.append(d_interaction)
         else:
             defection_interaction_ratio=None
-        eval_log_infos["eval_payoff/defection_interaction_ratio"] = defection_episode_payoff
-
-        # print('c_interaction',c_interaction)
-        # print('d_interaction',d_interaction)
-        # print(np.concatenate(interaction_ratio_concatenate, axis=0))
-
-        eval_log_infos["eval_interaction/defection_interaction_ratio"] = defection_interaction_ratio
+        eval_log_infos["eval_interaction/defection_interaction_ratio"] = defection_interaction_ratio    
         eval_log_infos["eval_interaction/average_interaction"] = np.mean(
             np.concatenate(interaction_ratio_concatenate, axis=0)
         )
 
-        eval_log_infos["eval_interaction/effective_cooperation"] = np.nanmean(effect_c_interaction)
-        eval_log_infos["eval_interaction/effective_defection"] = np.nanmean(effect_d_interaction)
+        eval_log_infos["eval_payoff/defection_interaction_ratio"] = defection_episode_payoff
+
+        if not np.isnan(effect_c_interaction).all():
+            effect_c_ratio = np.nanmean(effect_c_interaction)
+            effective_concatenate = [effect_c_interaction]
+        else:
+            effect_c_ratio=None
+            effective_concatenate=[]
+        eval_log_infos["eval_interaction/effective_cooperation"]=effect_c_ratio
+        
+        if not np.isnan(effect_d_interaction).all():
+            effect_d_ratio = np.nanmean(effect_d_interaction)
+            effective_concatenate.append(effect_c_interaction)
+        else:
+            effect_d_ratio=None
+        eval_log_infos["eval_interaction/effective_defection"] =effect_d_ratio
+        eval_log_infos["eval_interaction/average_effective_interaction"] = np.mean(
+            np.concatenate(effective_concatenate, axis=0)
+        )
+
+        eval_log_infos["eval_interaction/cc_intensity"] = np.nanmean(cc_intensity)
+        eval_log_infos["eval_interaction/cd_intensity"] = np.nanmean(cd_intensity)
+        eval_log_infos["eval_interaction/dd_intensity"] = np.nanmean(dd_intensity)
 
 
         # print(eval_log_infos)
