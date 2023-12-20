@@ -96,9 +96,7 @@ class LatticeEnv(AECEnv):
                     }
                 )
             else:
-                if (
-                     self.args.train_pattern == "seperate"
-                ):
+                if self.args.train_pattern == "seperate":
                     self.observation_spaces[agent.name] = spaces.Dict(
                         {
                             "n_s": spaces.MultiDiscrete(
@@ -134,7 +132,7 @@ class LatticeEnv(AECEnv):
                             ),
                         }
                     )
-                elif  self.args.train_pattern == "together":
+                elif self.args.train_pattern == "together":
                     self.observation_spaces[agent.name] = spaces.Dict(
                         {
                             "n_s": spaces.MultiDiscrete(
@@ -151,7 +149,7 @@ class LatticeEnv(AECEnv):
                                 np.full((4 * self.args.memory_length), 2)
                             ),
                         }
-                    )                    
+                    )
 
                 else:
                     self.observation_spaces[agent.name] = spaces.Dict(
@@ -322,7 +320,7 @@ class LatticeEnv(AECEnv):
                 self.rewards[agent.name] = agent_reward
 
         # Check if comparison of rewards is enabled
-        if self.args.compare_reward_pattern =='all':
+        if self.args.compare_reward_pattern == "all":
             # Initialize a list to store rewards for each strategy
             strategy_reward = [[], []]
 
@@ -361,23 +359,24 @@ class LatticeEnv(AECEnv):
                 # interact_reward_n.append(interact_reward)
                 interact_reward_n.append(agent.reward)
 
-            if self.args.compare_reward_pattern !='none':
-                if self.args.compare_reward_pattern =='neighbour':
+            if self.args.compare_reward_pattern != "none":
+                if self.args.compare_reward_pattern == "neighbour":
                     strategy_reward = [[], []]
-                    for idx, neighbour_idx in  enumerate(agent.neighbours):
-                        strategy_reward[self.world.agents[neighbour_idx].action.s].append(self.world.agents[neighbour_idx].reward)  
+                    for idx, neighbour_idx in enumerate(agent.neighbours):
+                        strategy_reward[
+                            self.world.agents[neighbour_idx].action.s
+                        ].append(self.world.agents[neighbour_idx].reward)
                     strategy_mean_reward = [
                         np.nanmean(s_r) if s_r else 0 for s_r in strategy_reward
                     ]
-                
+
                 # count neighbour strategy
                 dim_lengths = [0, 0]
                 for _, neighbour_idx in enumerate(agent.neighbours):
                     dim_lengths[self.world.agents[neighbour_idx].action.s] += 1
 
                 # add self strategy into count
-                dim_lengths[agent.action.s]+=1
-
+                dim_lengths[agent.action.s] += 1
 
                 ratios = [element / np.sum(dim_lengths) for element in dim_lengths]
 
@@ -409,14 +408,17 @@ class LatticeEnv(AECEnv):
         # Check if the state is below a certain threshold for termination
         termination = False
         coop_level = self.state()
-        if coop_level < 0.05 and self.render_mode=='train':
+        if coop_level < 0.05 and self.render_mode == "train":
             # print('cooperation level',coop_level)
             termination = True
 
-        interaction_n = self.count_effective_interaction()
+        interaction_n = self.count_interacted_time()
+        effecitve_interaction_n,average_intensity=self.count_effective_interaction()
+        ave_effective_ic=np.mean(effecitve_interaction_n[np.array(action_n) == 0])
+        ave_effective_id=np.mean(effecitve_interaction_n[np.array(action_n) == 1])
         # Calculate the element-wise product
         # elementwise_product = interaction_n * action_n
-        # print(interaction_n)
+        # print(average_intensity)
 
         # Calculate the average conntected time by neighbour for each strategy
         ave_interact_c = np.mean(interaction_n[np.array(action_n) == 0])
@@ -430,9 +432,11 @@ class LatticeEnv(AECEnv):
             "instant_payoff": [ave_payoff_c, ave_payoff_d],
             "current_cooperation": coop_level,
             "strategy_based_interaction": [ave_interact_c, ave_interact_d],
+            'average_intensity':average_intensity,
+            'effective_interaction':[ave_effective_ic,ave_effective_id]
         }
 
-        if self.args.compare_reward_pattern !='none' :
+        if self.args.compare_reward_pattern != "none":
             if self.args.seperate_interaction_reward:
                 combined_reward_n = np.column_stack(
                     (compare_reward_n, interact_reward_n)
@@ -563,7 +567,7 @@ class LatticeEnv(AECEnv):
             self.args.train_pattern == "together"
             or self.args.train_pattern == "seperate"
         ):
-            interaction_n = self.count_effective_interaction()
+            interaction_n = self.count_interacted_time()
 
             # Modify interaction_n based on action_n
             i_n = np.where(
@@ -626,9 +630,9 @@ class LatticeEnv(AECEnv):
         coop_level = np.mean(self.current_actions)
         return 1 - coop_level
 
-    def count_effective_interaction(self):
+    def count_interacted_time(self):
         """
-        count effective interaction agent with their neighbour, onnly calculate when neighbour is cooperator
+        count how many time agent connected by neighbour
         :return interaction_n: The effecitve ratio for every agent
         """
         interaction_n = []
@@ -636,16 +640,6 @@ class LatticeEnv(AECEnv):
             # be connected time by neighbour
             interaction_time = 0
             for _, n_idx in enumerate(agent.neighbours):
-                # if (
-                #     agent.action.ia[_] == 1
-                #     and self.world.agents[n_idx].action.ia[
-                #         self.world.agents[n_idx].neighbours.index(agent.index)
-                #     ]
-                #     == 1
-                # ):
-                # print(self.world.agents[n_idx].action.ia[
-                #     self.world.agents[n_idx].neighbours.index(agent.index)
-                # ])
                 if (
                     self.world.agents[n_idx].action.ia[
                         self.world.agents[n_idx].neighbours.index(agent.index)
@@ -656,3 +650,43 @@ class LatticeEnv(AECEnv):
 
             interaction_n.append(interaction_time)
         return np.array(interaction_n) / 4
+
+    def count_effective_interaction(self):
+        """
+        count the effective interaction
+        connected to neighbour, and neighbour connected to self
+        """
+        # link-strategy configuration list
+        # store CC CD(or DC) DD
+        l_s_list = np.zeros(3)
+        # store actual interaction
+        actual_l_s_list = np.zeros(3)
+
+
+        interaction_n = []
+        for agent in self.world.agents:
+            # be connected time by neighbour
+            interaction_time = 0
+            for _, n_idx in enumerate(agent.neighbours):
+                # strategy set can be 0 1 2
+                # denote as DD DC/CD CC
+                l_s_list[agent.action.s+self.world.agents[n_idx].action.s]+=1
+
+                if (
+                    agent.action.ia[_] == 1
+                    and self.world.agents[n_idx].action.ia[
+                        self.world.agents[n_idx].neighbours.index(agent.index)
+                    ]
+                    == 1
+                ):
+                    interaction_time += 1
+                    # actual interaction
+                    actual_l_s_list[agent.action.s+self.world.agents[n_idx].action.s]+=1
+            average_intensity = np.divide(
+                actual_l_s_list,
+                l_s_list,
+                out=np.zeros_like(actual_l_s_list),
+                where=l_s_list != 0,
+            )
+            interaction_n.append(interaction_time)
+        return np.array(interaction_n) / 4,average_intensity

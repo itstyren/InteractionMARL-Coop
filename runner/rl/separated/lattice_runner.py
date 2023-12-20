@@ -547,6 +547,9 @@ class LatticeRunner(Runner):
         c_interaction = []
         d_interaction = []
 
+        effect_c_interaction = []
+        effect_d_interaction = []
+
         for infos in eval_episode_info:
             for info in infos:
                 if "cumulative_payoffs" in info:
@@ -557,6 +560,9 @@ class LatticeRunner(Runner):
 
                 c_interaction.append(info["strategy_based_interaction"][0])
                 d_interaction.append(info["strategy_based_interaction"][1])
+
+                effect_c_interaction.append(info["effective_interaction"][0])
+                effect_d_interaction.append(info["effective_interaction"][1])
 
         # concatenated_acts = np.concatenate(np.array(eval_episode_acts).flatten())
         concatenated_final_acts = np.concatenate(
@@ -596,6 +602,8 @@ class LatticeRunner(Runner):
         )
         eval_log_infos["eval_payoff/episode_payoff"] = self.best_mean_payoff
 
+        eval_log_infos["eval_payoff/gini_coefficient"] = gini_value
+
         if not np.isnan(c_interaction).all():
             cooperation_interaction_ratio=np.nanmean(c_interaction)
             interaction_ratio_concatenate = [c_interaction]
@@ -619,6 +627,10 @@ class LatticeRunner(Runner):
         eval_log_infos["eval_interaction/average_interaction"] = np.mean(
             np.concatenate(interaction_ratio_concatenate, axis=0)
         )
+
+        eval_log_infos["eval_interaction/effective_cooperation"] = np.nanmean(effect_c_interaction)
+        eval_log_infos["eval_interaction/effective_defection"] = np.nanmean(effect_d_interaction)
+
 
         # print(eval_log_infos)
         self.log_train(eval_log_infos)
@@ -725,6 +737,13 @@ class LatticeRunner(Runner):
         c_interaction = []
         d_interaction = []
 
+        effect_c_interaction = []
+        effect_d_interaction = []
+
+        cc_intensity=[]
+        cd_intensity=[]
+        dd_intensity=[]
+
         # print(episode_info)
         # gini_value = 0
         for infos in episode_info:
@@ -737,6 +756,13 @@ class LatticeRunner(Runner):
 
                 c_interaction.append(info["strategy_based_interaction"][0])
                 d_interaction.append(info["strategy_based_interaction"][1])
+
+                effect_c_interaction.append(info["effective_interaction"][0])
+                effect_d_interaction.append(info["effective_interaction"][1])
+
+                cc_intensity.append(info["average_intensity"][0])
+                cd_intensity.append(info["average_intensity"][1])
+                dd_intensity.append(info["average_intensity"][2])
 
         # reward
         episode_coop_rewards = []
@@ -762,6 +788,17 @@ class LatticeRunner(Runner):
         train_infos["interaction/average_interaction"] = np.mean(
             np.concatenate((c_interaction, d_interaction), axis=0)
         )
+
+        train_infos["interaction/effective_cooperation"] = np.mean(effect_c_interaction)
+        train_infos["interaction/effective_defection"] = np.mean(effect_d_interaction)
+        train_infos["interaction/average_effective_interaction"] = np.mean(
+            np.concatenate((effect_c_interaction, effect_d_interaction), axis=0)
+        )
+        train_infos["interaction/cc_intensity"] = np.mean(cc_intensity)
+        train_infos["interaction/cd_intensity"] = np.mean(cd_intensity)
+        train_infos["interaction/dd_intensity"] = np.mean(dd_intensity)
+
+
 
         train_infos["payoff/gini_coefficient "] = gini_value
 
