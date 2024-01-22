@@ -413,7 +413,7 @@ class LatticeEnv(AECEnv):
             termination = True
 
         interaction_n = self.count_interacted_time()
-        effecitve_interaction_n,average_intensity=self.count_effective_interaction()
+        effecitve_interaction_n,average_intensity,average_link=self.count_effective_interaction()
         ave_effective_ic=np.mean(effecitve_interaction_n[np.array(action_n) == 0])
         ave_effective_id=np.mean(effecitve_interaction_n[np.array(action_n) == 1])
         # Calculate the element-wise product
@@ -433,6 +433,7 @@ class LatticeEnv(AECEnv):
             "current_cooperation": coop_level,
             "strategy_based_interaction": [ave_interact_c, ave_interact_d],
             'average_intensity':average_intensity,
+            'average_link':average_link,
             'effective_interaction':[ave_effective_ic,ave_effective_id]
         }
 
@@ -688,5 +689,9 @@ class LatticeEnv(AECEnv):
                 out=np.zeros_like(actual_l_s_list),
                 where=l_s_list != 0,
             )
+            average_link=np.divide(
+                l_s_list,
+                np.sum(l_s_list),
+            )
             interaction_n.append(interaction_time)
-        return np.array(interaction_n) / 4,average_intensity
+        return np.array(interaction_n) / 4,average_intensity,average_link

@@ -26,7 +26,7 @@ class LatticeRunner(Runner):
         self.last_best_mean_payoff = -np.inf
         self.last_best_cooperation_level = -np.inf
         self.no_improvement_evals = 0
-        self.max_no_improvement_evals=2
+        self.max_no_improvement_evals=4
         self.continue_training=True
 
     def run(self):
@@ -554,6 +554,10 @@ class LatticeRunner(Runner):
         cd_intensity=[]
         dd_intensity=[]
 
+        cc_link=[]
+        cd_link=[]
+        dd_link=[]
+
         for infos in eval_episode_info:
             for info in infos:
                 if "cumulative_payoffs" in info:
@@ -569,7 +573,11 @@ class LatticeRunner(Runner):
 
                 cc_intensity.append(info["average_intensity"][0])
                 cd_intensity.append(info["average_intensity"][1])
-                dd_intensity.append(info["average_intensity"][2])                
+                dd_intensity.append(info["average_intensity"][2])
+
+                cc_link.append(info["average_link"][0])
+                cd_link.append(info["average_link"][1])
+                dd_link.append(info["average_link"][2])                          
 
         # concatenated_acts = np.concatenate(np.array(eval_episode_acts).flatten())
         concatenated_final_acts = np.concatenate(
@@ -641,10 +649,11 @@ class LatticeRunner(Runner):
         
         if not np.isnan(effect_d_interaction).all():
             effect_d_ratio = np.nanmean(effect_d_interaction)
-            effective_concatenate.append(effect_c_interaction)
+            effective_concatenate.append(effect_d_interaction)
         else:
             effect_d_ratio=None
         eval_log_infos["eval_interaction/effective_defection"] =effect_d_ratio
+        
         eval_log_infos["eval_interaction/average_effective_interaction"] = np.mean(
             np.concatenate(effective_concatenate, axis=0)
         )
@@ -653,7 +662,10 @@ class LatticeRunner(Runner):
         eval_log_infos["eval_interaction/cd_intensity"] = np.nanmean(cd_intensity)
         eval_log_infos["eval_interaction/dd_intensity"] = np.nanmean(dd_intensity)
 
-
+        eval_log_infos["eval_interaction/cc_link"] = np.nanmean(cc_link)
+        eval_log_infos["eval_interaction/cd_link"] = np.nanmean(cd_link)
+        eval_log_infos["eval_interaction/dd_link"] = np.nanmean(dd_link)
+        
         # print(eval_log_infos)
         self.log_train(eval_log_infos)
         
