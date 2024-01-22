@@ -1,8 +1,6 @@
 import numpy as np
 import torch
-import math
-from gymnasium import spaces
-from typing import Any, ClassVar, Dict, List, Optional, Tuple, Type, TypeVar, Union
+from typing import Dict, Optional, Tuple, Type, TypeVar, Union
 from stable_baselines3.common.utils import (
     get_linear_fn,
     get_parameters_by_name,
@@ -11,7 +9,7 @@ from stable_baselines3.common.utils import (
 from stable_baselines3.dqn.policies import QNetwork
 from algorithms.dqn.policy import DQN_Policy
 from algorithms.baseAlgorithm import BaseAlgorithm
-from stable_baselines3.common.type_aliases import GymEnv, MaybeCallback, Schedule
+from stable_baselines3.common.type_aliases import GymEnv, Schedule
 from torch.nn import functional as F
 from utils.util import convert_array_to_two_arrays
 
@@ -166,41 +164,19 @@ class Strategy_DQN(BaseAlgorithm):
         :param observation: the input observation
         :return: the model's action
         """
-        # print(obs_buffer)
-        # print(self.policy.action_space)
-        # print(obs_buffer)
         action = []
-        # print("exploration_rate:", self.exploration_rate)
-        # actions = []
-        # # print(self.policy.action_space)
-        # # print(self.action_flag)
-        # # print('====')
-        # for _ in range(len(obs_buffer)):
-        #     action = torch.tensor([self.policy.action_space.sample()])
-        #     actions.append(action)
-        # return torch.cat(actions, dim=0)        
-        # np.random.seed(self.all_args.seed)
-        # torch.manual_seed(self.all_args.seed)
+
         if not deterministic and np.random.rand() < self.exploration_rate:
             actions = []
-            # print(self.policy.action_space)
-            # print(self.action_flag)
-            # print('====')
             for _ in range(len(obs_buffer)):
                 action = torch.tensor([self.policy.action_space.sample()])
                 actions.append(action)
             return torch.cat(actions, dim=0)
         else:
-            # return self.policy.get_actions(obs_buffer)
-            # print(self.policy.action_space)
-            # print(self.policy.predict(obs_buffer))
-            # print('====')
             return self.policy.predict(obs_buffer)
-        # return self.policy.predict(obs_buffer)
+
 
     def train(self, batch_size, replay_buffer,action_flag) -> None:
-        
-        # torch.manual_seed(self.all_args.seed)
         
         # Switch to train mode (this affects batch norm / dropout)
         self.policy.set_training_mode(True)
@@ -235,10 +211,6 @@ class Strategy_DQN(BaseAlgorithm):
                 next_q_values, _ = torch.stack(next_q_values).max(dim=1)
                 # Avoid potential broadcast issue
                 next_q_values = next_q_values.reshape(-1)
-                # print(action_flag)
-                # print(replay_data.rewards)
-                # print(replay_data.actions)
-                # print('=====')
                 # 1-step TD target
                 target_q_values = (
                     replay_data.rewards
@@ -258,11 +230,6 @@ class Strategy_DQN(BaseAlgorithm):
                         else:
                             train_rewards[i]=None
                             
-            # print(acts)
-            # print(intacts)
-            # print('=====')
-            # print(self.gamma * next_q_values)
-            # print(replay_data.dones)
             # print('next_q:',next_q_values)
             # print('rewards:',replay_data.rewards)
             current_q_values = torch.stack(current_q_values)
@@ -290,12 +257,7 @@ class Strategy_DQN(BaseAlgorithm):
 
             if self.all_args.replay_scheme == "prioritized":
                 td_errors=(current_q_values-target_q_values).numpy(force=True)
-                # if np.any(np.isnan(td_errors)):
-                #     print(current_q_values)
-                #     print(target_q_values)
-                    # print(replay_data)
                 new_priorities = np.abs(td_errors) + self.prioritized_replay_eps
-                # print(new_priorities,self.prioritized_replay_eps)
                 replay_buffer.update_priorities(priority_idxes, new_priorities)
 
         # Increase update counter

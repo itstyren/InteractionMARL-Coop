@@ -12,9 +12,3 @@ class EGT_Policy:
 
         self.obs_space = obs_space
         self.act_space = act_space
-
-    # def get_actions(self,obs):
-    #     '''
-    #     Compute actions, return current strtategy
-    #     '''
-    #     return obs[0][0][1].astype(np.int16)

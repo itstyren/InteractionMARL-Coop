@@ -1,40 +1,28 @@
-from abc import ABC, abstractmethod
+from abc import ABC
 from stable_baselines3.common.utils import (
-    check_for_correct_spaces,
-    get_device,
     get_schedule_fn,
-    get_system_info,
-    set_random_seed,
     update_learning_rate,
 )
 import numpy as np
-from stable_baselines3.common.preprocessing import get_action_dim, get_obs_shape
 
 from typing import (
-    Any,
-    ClassVar,
-    Dict,
-    Iterable,
     List,
-    Optional,
-    Tuple,
     Type,
-    TypeVar,
     Union,
 )
-from stable_baselines3.common.type_aliases import GymEnv, MaybeCallback, RolloutReturn, Schedule, TrainFreq, TrainFrequencyUnit
+from stable_baselines3.common.type_aliases import GymEnv, Schedule
 import torch
 from algorithms.basePolicy import BasePolicy
-from stable_baselines3.common.preprocessing import get_action_dim, is_image_space, maybe_transpose, preprocess_obs
 
 
 class BaseAlgorithm(ABC):
     """
-    The base of RL algorithms
+    Base class for Reinforcement Learning algorithms.
 
-    :param learning_rate: learning rate for the optimizer,
-        it can be a function of the current progress remaining (from 1 to 0)
-    :param action_flag: 0 only strategy, 1 only interaction 2 strategy and interaction together
+    :param learning_rate: The learning rate for the optimizer. 
+                          This can be a fixed float value or a function that dynamically adjusts based on the current progress (decreasing from 1 to 0).
+    :param action_flag: Specifies the mode of action. It can be one of the following:
+                        0 - Strategy only; 1 - Interaction only; 2 - Strategy and Interaction
     """
 
     def __init__(
@@ -46,7 +34,6 @@ class BaseAlgorithm(ABC):
         learning_rate: Union[float, Schedule],
         prioritized_replay_beta: Union[float, Schedule],
         prioritized_replay_eps:float,
-        buffer_size: int = 1_000_000,  # 1e6        
         gamma: float = 0.99,            
         gradient_steps: int = 1,
         device=torch.device("cpu"),
@@ -63,8 +50,6 @@ class BaseAlgorithm(ABC):
         # Used for updating schedules
         self._total_timesteps = 0
         self.action_size=self.env.action_spaces["agent_0"][self.action_flag].n
-        # print(self.action_size)
-        # self.action_size=get_action_dim(self.env.action_spaces["agent_0"][self.action_flag])
 
         self.prioritized_replay_beta=prioritized_replay_beta
         self.prioritized_replay_eps=prioritized_replay_eps
@@ -80,16 +65,12 @@ class BaseAlgorithm(ABC):
         # For logging (and TD3 delayed updates)
         self._n_updates = 0  # type: int
 
-
-
-
     def _setup_model(self) -> None:
         self._setup_schedule()
         optimizer_kwargs = {
             "weight_decay": self.all_args.weight_decay,
             "eps": self.all_args.opti_eps,
         }
-        # print(self.env.action_spaces["agent_0"])
 
         if self.action_flag==1: # 1 means obs space for interaction model
             obs_space=self.env.interact_observation_spaces["agent_0"]
@@ -114,9 +95,6 @@ class BaseAlgorithm(ABC):
         self.lr_schedule = get_schedule_fn(self.learning_rate)
         self.beta_schedual=get_schedule_fn(self.prioritized_replay_beta)
         
-        # print('=========',self.learning_rate)
-        # print('=========',self.beta_schedual)
-
     def _update_schedule(
         self, optimizers: Union[List[torch.optim.Optimizer], torch.optim.Optimizer]
     ) -> float:

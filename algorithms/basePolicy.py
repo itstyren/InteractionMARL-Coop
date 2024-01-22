@@ -2,20 +2,14 @@ from gymnasium import spaces
 from torch import nn
 import numpy as np
 import torch
-from typing import Any, Dict, List, Optional, Tuple, Type, TypeVar, Union
+from typing import Any, Dict, Optional, Tuple, Type, Union
 from stable_baselines3.common.torch_layers import (
     BaseFeaturesExtractor,
-    CombinedExtractor,
     FlattenExtractor,
-    MlpExtractor,
-    NatureCNN,
-    create_mlp,
 )
 from abc import ABC, abstractmethod
 from utils.util import preprocess_obs
-# from stable_baselines3.common.preprocessing import get_action_dim, is_image_space, maybe_transpose, preprocess_obs
-import copy
-from stable_baselines3.common.utils import get_device, is_vectorized_observation, obs_as_tensor
+
 
 class BaseModel(nn.Module):
     """

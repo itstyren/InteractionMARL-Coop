@@ -426,11 +426,6 @@ def get_config():
     return parser
 
 
-ALL_CONFIGS = {
-    "lattice_egt": "../../configs/lattice_egt.yaml",
-    "lattice_rl": "../../configs/lattice_rl.yaml",
-}
-
 
 def update_config(parsed_args) -> Dict:
     """
@@ -440,21 +435,6 @@ def update_config(parsed_args) -> Dict:
 
     current_directory = os.getcwd()
     print("Current Directory:", current_directory)
-
-    # with open(ALL_CONFIGS[parsed_args.scenario_name]) as f:
-    #     config = yaml.load(f, Loader=yaml.FullLoader)
-
-    # for class_name, class_values in config.items():
-    #     for k, v in class_values.items():
-    #         # if not defined in command-line
-    #         if f"--{k}" not in sys.argv[1:]:
-    #             setattr(parsed_args, k, v)
-    #         else:
-    #             print(
-    #                 f"CLI argument {k} conflicts with yaml config. "
-    #                 f"The latter will be overwritten "
-    #                 f"by CLI arguments {k}={getattr(parsed_args, k)}."
-    #             )
     print(
         "========  all config   ======== \n {} \n ==============================".format(
             parsed_args
