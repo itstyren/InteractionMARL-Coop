@@ -2,9 +2,9 @@ from setuptools import setup, find_packages
 
 
 setup(
-    name='Interaction-SD',
+    name='InteractionMARL-Coop',
     version='0.1',
-    author='tyren',    
+    author='Anonymous',    
     packages=find_packages(),
     install_requires=[
         'gymnasium',

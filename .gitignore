@@ -4,3 +4,4 @@ build
 .vscode
 *.pyc
 results
+scripts/train_pd_scripts/*.txt
