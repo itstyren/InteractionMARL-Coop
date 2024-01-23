@@ -8,7 +8,6 @@ from envs.matrix_dilemma._md_utils.lattice_env import LatticeEnv
 from envs.matrix_dilemma._md_utils.scenario import BaseScenario
 from envs.matrix_dilemma._md_utils.core import World, Agent
 import numpy as np
-import torch
 
 class raw_env(LatticeEnv):
     """

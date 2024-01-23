@@ -8,8 +8,6 @@ from envs.matrix_dilemma._md_utils.lattice_env import LatticeEnv
 from envs.matrix_dilemma._md_utils.scenario import BaseScenario
 from envs.matrix_dilemma._md_utils.core import World, Agent
 import numpy as np
-import torch
-
 
 class raw_env(LatticeEnv):
     """
@@ -199,17 +197,11 @@ class Scenario(BaseScenario):
         :return obs (list): current neighbour strategy list, neighbour reward list
         """
         for _, n_i in enumerate(agent.neighbours):
-            # agent_idx_in_neighbour=world.agents[n_i].neighbours.index(agent.index)
-            # agent.neighbours_act_m[_].append(world.agents[n_i].action.s)
-            # agent.neighbours_intaction_m[_].append(world.agents[n_i].action.ia[agent_idx_in_neighbour])
             agent.intaction_m[_].append(agent.action.ia[_])
-
-        # print([list(d) for d in agent.neighbours_act_m])
 
         flat_neighbours_act_m = np.concatenate(
             [list(d) for d in agent.neighbours_act_m]
         )
-        # flat_neighbours_intaction_m=np.concatenate([list(d) for d in agent.neighbours_intaction_m])
         flat_intaction_m = np.concatenate([list(d) for d in agent.intaction_m])
 
         agent.self_act_m.append(agent.action.s)

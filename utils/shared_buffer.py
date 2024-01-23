@@ -2,8 +2,7 @@ import numpy as np
 from stable_baselines3.common.preprocessing import get_action_dim, get_obs_shape
 import torch
 from typing import NamedTuple
-from torch.nn import functional as F
-from typing import Any, Dict, List, Optional, Tuple, Type, TypeVar, Union
+from typing import Dict,Union
 
 
 class ReplayBufferSamples(NamedTuple):
@@ -54,19 +53,11 @@ class SharedReplayBuffer(object):
         )
         self.step = 0
         self.full = False
-        # print(self.observations)
-        # print(self.obs[0][0][0])
-        # print(len(self.obs[0][0]))
-        # np.zeros((self.episode_length + 1, self.n_rollout_threads, self.num_agents, *obs_shape), dtype=np.float32)
 
     def insert(self, obs, rewards, termination, actions):
         """
         Insert data into the buffer
         """
-        # print('===========================',self.step)
-        # print(self.obs[self.step + 1])
-        # print(self.rewards[self.step])
-        # print(rewards)
         self.obs[self.step + 1] = obs.copy()
         self.rewards[self.step] = rewards.copy()
         self.actions[self.step] = actions.copy()
@@ -92,11 +83,6 @@ class SharedReplayBuffer(object):
             ) % self.episode_length
         else:
             batch_inds = np.random.randint(0, self.step, size=batch_size)
-        # batch_inds = np.random.randint(0, self.step, size=batch_size)
-        # print("bathch_size", batch_size)
-        # print(np.concatenate(self.rewards[-1]))
-        # print('obs size:',len(self.obs),len(self.obs[0]))
-        # print('reward size:',len(self.rewards),len(self.rewards[0]))
         return self._get_samples(batch_inds)
 
     def _get_samples(self, batch_inds: np.ndarray):
@@ -104,40 +90,13 @@ class SharedReplayBuffer(object):
         env_indices = np.random.randint(
             0, high=self.n_rollout_threads, size=(len(batch_inds),)
         )
-        # print("env_indices", env_indices)
-        # print("batch_inds", batch_inds)
-
-        # print(self.rewards)
-
-        # print('current obs',self.obs[batch_inds, env_indices, :])
-        # print('next obs',self.obs[batch_inds+1, env_indices, :])
-        # print('next',self.rewards)
-        # print('next',self.rewards[batch_inds])
-        # print('next',self.rewards[batch_inds, env_indices, :])
-        # obs,action,next_obs,rewards
-        # print('action:',self.actions[batch_inds, env_indices, :])
-        # print(self.to_torch(np.concatenate(self.actions[batch_inds, env_indices, :])))
-        # print(a)
-        # agent_index=np.random.randint(self.num_agents)
-
 
         data = (
             np.concatenate(self.obs[batch_inds, env_indices, :]),
             np.concatenate(self.actions[batch_inds, env_indices, :]),
-            # self.obs[batch_inds, env_indices, agent_index],
-            # self.actions[batch_inds, env_indices, agent_index],
-            # F.one_hot(
-            #     self.to_torch(
-            #         np.concatenate(self.actions[batch_inds, env_indices, :])
-            #     ).long(),
-            #     num_classes=self.action_space.n,
-            # ),
             np.concatenate(self.obs[batch_inds + 1, env_indices, :]),
             np.concatenate(self.termination[batch_inds, env_indices, :]).astype(int),
-            np.concatenate(self.rewards[batch_inds, env_indices, :]),
-        #    self.obs[batch_inds + 1, env_indices, agent_index],
-        #    self.termination[batch_inds, env_indices, agent_index].astype(int),
-        #    self.rewards[batch_inds, env_indices, agent_index],            
+            np.concatenate(self.rewards[batch_inds, env_indices, :]),     
         )
         return ReplayBufferSamples(*tuple(map(self.to_torch, data)))
 

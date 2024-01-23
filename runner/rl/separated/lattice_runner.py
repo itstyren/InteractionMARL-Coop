@@ -4,8 +4,6 @@ import torch
 import time
 from stable_baselines3.common.utils import should_collect_more_steps
 from utils.util import gini, consecutive_counts, convert_array_to_two_arrays, save_array
-import copy
-import pdb
 
 
 def _t2n(x):
@@ -202,8 +200,7 @@ class LatticeRunner(Runner):
         self.episodes = (
             int(self.num_env_steps) // self.episode_length // self.n_rollout_threads
         )
-        # total timestep for each thread
-        # self._total_timesteps = int(self.num_env_steps) // self.n_rollout_threads
+
 
         self.start_time = time.time_ns()
 
@@ -242,9 +239,6 @@ class LatticeRunner(Runner):
                     agent_action, agent_interaction = convert_array_to_two_arrays(
                         agent_action
                     )
-                # print(agent_action)
-                # print(agent_interaction)
-                # print('=====')
                 if self.all_args.train_pattern == "seperate":
                     agent_interaction = np.array(
                         [
@@ -252,7 +246,6 @@ class LatticeRunner(Runner):
                             for _ in range(self.n_rollout_threads)
                         ]
                     )
-                # print(agent_interaction)
             else:
                 agent_action = self.trainer[agent_id].predict(
                     self.buffer[agent_id].obs[step]
@@ -294,8 +287,7 @@ class LatticeRunner(Runner):
 
             if self.all_args.train_pattern != "strategy":
                 interactions.append(agent_interaction)
-            # print(agent_interaction)
-        # print('strategy_coop_based',strategy_coop_based)
+
         # Calculate the average strategy based on cooperation for all agents
         self.avg_strategy_coop_based = np.nanmean(strategy_coop_based, axis=0)
 
@@ -364,8 +356,6 @@ class LatticeRunner(Runner):
             interaction_reward = interaction_reward.reshape(len(rewards), -1)
         else:
             strategy_reward = rewards
-
-        # print(strategy_reward)
 
         # Unpack data for interaction training
         for agent_id in range(self.num_agents):
@@ -473,7 +463,6 @@ class LatticeRunner(Runner):
                     )
 
                 if self.all_args.train_pattern == "seperate":
-                    # print(self.buffer[agent_id].obs[step])
                     agent_interaction = self.iteract_trainer[agent_id].predict(
                         np.array(list(eval_interact_obs[:, agent_id])),
                         deterministic=deterministic,
@@ -711,7 +700,6 @@ class LatticeRunner(Runner):
         terms = []
         start_index = self.br_start_idx
         end_index = self.buffer[0].step
-        # print(end_index)
 
         # Calculate the range of indices with wrap-around
         if start_index > end_index:
@@ -721,21 +709,13 @@ class LatticeRunner(Runner):
         else:
             indices = list(range(start_index, end_index))
 
-        # print(end_index)
-        # print(indices)
-        # input()
-        # print(len(indices))
         if self.algorithm_name == "DQN":
             # iterate all agents
             for br in self.buffer:
                 if self.all_args.normalize_pattern == "all":
                     episode_rwds.append([br.norm_rewards[i] for i in indices])
                 elif self.all_args.normalize_pattern == "episode":
-                    # print(indices)
-                    # print(br.episode_norm_rewards)
                     episode_rwds.append([br.episode_norm_rewards[i] for i in indices])
-                    # print(episode_rwds)
-                    # input()
                 else:
                     episode_rwds.append([br.rewards[i] for i in indices])
                 _acts = [br.actions[i] for i in indices]
@@ -757,9 +737,6 @@ class LatticeRunner(Runner):
         log episode info
         """
         episode_rwds, episode_acts, episode_final_acts, terms = self.extract_buffer()
-        # print('episode_acts',episode_acts)
-        # breakpoint()
-        # print(np.array(episode_acts))
         self.calculate_strategy_roubutness(np.array(episode_acts).copy())
 
         self._dump_logs(episode)
@@ -778,8 +755,6 @@ class LatticeRunner(Runner):
         cd_intensity=[]
         dd_intensity=[]
 
-        # print(episode_info)
-        # gini_value = 0
         for infos in episode_info:
             for info in infos:
                 if "cumulative_payoffs" in info:
@@ -801,7 +776,6 @@ class LatticeRunner(Runner):
         # reward
         episode_coop_rewards = []
         episode_defect_rewards = []
-        # print(episode_rwds)
         for r, a in zip(
             np.array(episode_rwds).flatten().round(2), np.array(episode_acts).flatten()
         ):
@@ -843,9 +817,6 @@ class LatticeRunner(Runner):
             episode_defect_rewards
         )
         train_infos["results/average_episode_rewards"] = np.mean(episode_rwds)
-        # print(episode_acts)
-        # print( 1 - np.mean(episode_acts))
-        # print(len(episode_acts))
         train_infos["results/episode_cooperation_level"] = 1 - np.mean(episode_acts)
         train_infos["results/episode_final_cooperation_performance"] = 1 - np.mean(
             episode_final_acts
@@ -880,7 +851,6 @@ class LatticeRunner(Runner):
             ]
         else:
             episode_acts_flattened = episode_acts
-        # print(episode_acts_flattened)
         episode_acts_transposed = [
             np.array(_).T for _ in episode_acts_flattened
         ]  # Agent-Env-Epsisode
@@ -920,10 +890,8 @@ class LatticeRunner(Runner):
         eval the trained model
         :param eval_time: The totoal eval trials
         """
-
         eval_envs = self.eval_envs
         trials = int(eval_time / self.n_rollout_threads)
-        eval_scores = []
         for trial in range(trials):
             print("trail is {}".format(trial))
             self.num_timesteps = 0

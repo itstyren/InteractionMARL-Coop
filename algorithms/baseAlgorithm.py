@@ -34,6 +34,7 @@ class BaseAlgorithm(ABC):
         learning_rate: Union[float, Schedule],
         prioritized_replay_beta: Union[float, Schedule],
         prioritized_replay_eps:float,
+        buffer_size: int = 1_000_000,  # 1e6   
         gamma: float = 0.99,            
         gradient_steps: int = 1,
         device=torch.device("cpu"),

@@ -9,7 +9,6 @@ import wandb
 import socket
 from datetime import datetime
 from envs.env_wrappers import DummyVecEnv, SubprocVecEnv
-from stable_baselines3.common.callbacks import CheckpointCallback
 import copy
 import random
 

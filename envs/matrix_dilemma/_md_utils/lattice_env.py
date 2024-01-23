@@ -1,11 +1,10 @@
 from pettingzoo import AECEnv
-import functools
 from pettingzoo.utils.agent_selector import agent_selector
 from gymnasium.utils import seeding
 import numpy as np
 from gymnasium import spaces
 import gymnasium
-from matplotlib import colors, cm
+from matplotlib import colors
 import matplotlib.pyplot as plt
 
 
@@ -80,8 +79,6 @@ class LatticeEnv(AECEnv):
                 #     np.array([2,2])
                 # )
 
-            # obs_dim_x = len(self.scenario.observation(agent, self.world))
-            # obs_dim_y = len(self.scenario.observation(agent, self.world)[0])
             # set observation_spaces
             if self.args.algorithm_name == "EGT":
                 self.observation_spaces[agent.name] = spaces.Dict(
@@ -202,8 +199,6 @@ class LatticeEnv(AECEnv):
             an initial observation
             some auxiliary information.
         """
-        # if seed is not None:
-        #     self._seed(seed=seed)
         self._seed(seed=self.args.seed)
 
         # reset scenario (strategy and memory)
@@ -416,9 +411,6 @@ class LatticeEnv(AECEnv):
         effecitve_interaction_n,average_intensity,average_link=self.count_effective_interaction()
         ave_effective_ic=np.mean(effecitve_interaction_n[np.array(action_n) == 0])
         ave_effective_id=np.mean(effecitve_interaction_n[np.array(action_n) == 1])
-        # Calculate the element-wise product
-        # elementwise_product = interaction_n * action_n
-        # print(average_intensity)
 
         # Calculate the average conntected time by neighbour for each strategy
         ave_interact_c = np.mean(interaction_n[np.array(action_n) == 0])
@@ -479,7 +471,6 @@ class LatticeEnv(AECEnv):
         Returns:
             the 5-tuple (observation, reward, terminated, truncated, info)
         """
-        cur_agent = self.agent_selection
         # get current agent index
         current_idx = self._index_map[self.agent_selection]
         next_idx = (current_idx + 1) % self.num_agents
@@ -517,8 +508,6 @@ class LatticeEnv(AECEnv):
         else:
             self._clear_rewards()
 
-        # self._cumulative_rewards[cur_agent] = 0
-
     def render(self, mode, step):
         """
         render current env
@@ -534,10 +523,8 @@ class LatticeEnv(AECEnv):
             return
 
         # Define color map for rendering
-        # color_set = np.array(["#0c056d",'#3c368a','#6d69a7','#9d9bc4','#cecde1','#ffe7e7','#ffd0d0','#ff7272','#ff4242', "#ff1414"])
         color_set = np.array(["#0c056d", "#eaeaea", "#ff1414"])
 
-        # cmap = colors.ListedColormap([color_set[0], color_set[1],color_set[2],color_set[3],color_set[4],color_set[5],color_set[6],color_set[7]])
         cmap = colors.ListedColormap(np.array(["#0c056d", "red"]))
         # Create the colormap
         if (
@@ -547,10 +534,6 @@ class LatticeEnv(AECEnv):
             cmap_interact = colors.LinearSegmentedColormap.from_list(
                 "my_list", color_set, N=9
             )
-            # cmap = colors.ListedColormap([color_set[0],color_set[0], color_set[1],color_set[2],color_set[3],color_set[4],color_set[5],color_set[6],color_set[7],color_set[8]])
-            # cmap_interact = colors.ListedColormap(color_set)
-            # bounds = [0,1,2,3,4]
-            # norm = colors.BoundaryNorm(bounds, cmap.N)
 
         else:
             cmap = colors.ListedColormap(np.array(["#0c056d", "red"]))

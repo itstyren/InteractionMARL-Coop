@@ -117,18 +117,6 @@ class Scenario(BaseScenario):
         get obs info for current agent
         self and neighbours infos: index,strategy,payoff
         """
-        # strategy_set = np.zeros(len(agent.neighbours))
-        # payoff_set=np.zeros(len(agent.neighbours))
-        sp_set = []
-        # index_set[0]=agent.index
-        # strategy_set[0]=int(agent.action.s)
-        # payoff_set[0]=agent.reward
-
-        # for _, j in enumerate(agent.neighbours):
-        #     index_set[_+1] = j
-        #     strategy_set[_+1] = int(world.agents[j].action.s)
-        #     payoff_set[_+1] = world.agents[j].reward
-
         neighbour_strategy = []
         neighbour_reward = []
         neighbour_index=[]
@@ -147,5 +135,3 @@ class Scenario(BaseScenario):
             'n_r':neighbour_reward
         }
         return obs
-
-        # return np.column_stack((index_set,strategy_set,payoff_set))

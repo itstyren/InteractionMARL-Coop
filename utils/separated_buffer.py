@@ -1,13 +1,13 @@
 import numpy as np
-from stable_baselines3.common.preprocessing import get_action_dim, get_obs_shape
+from stable_baselines3.common.preprocessing import get_obs_shape
 import torch
 from typing import NamedTuple
 from torch.nn import functional as F
-from typing import Any, Dict, List, Optional, Tuple, Type, TypeVar, Union
+from typing import Dict,Tuple, Union
 from utils.segment_tree import SumSegmentTree, MinSegmentTree
 from utils.util import get_past_idx,convert_arrays_to_original
 import random
-from abc import ABC, abstractmethod
+from abc import ABC
 from gymnasium import spaces
 
 try:
@@ -103,25 +103,19 @@ class BaseBuffer(ABC):
         """
         episode_indices = get_past_idx(self.step,self.buffer_size,episode_length)[::-1]
         past_rewards=np.array([self.rewards[i] for i in episode_indices])
-        # print('past_rewards',past_rewards[0])
         rewards_copy=np.concatenate(past_rewards).copy()
         mean_rewards = np.nanmean(rewards_copy)
         std_rewards = np.nanstd(rewards_copy)
         rewards = (np.concatenate(past_rewards) - mean_rewards) / (
             std_rewards + 1e-5
         )
-        # print('norm_reward',rewards.reshape(past_rewards.shape)[0])
-        # print('====')
-        # rewards = np.concatenate(past_rewards)
         self.episode_norm_rewards[episode_indices]=rewards.reshape(past_rewards.shape).copy()
-        # print('episode_indices',episode_indices)
 
     def normalized_rewards(self):
         """
         Normalize reward by mean and std
         """
         _indx = self.current_buffer_size()
-        # print(_indx)
 
         rewards_copy = np.concatenate(self.rewards[:_indx]).copy()
         mean_rewards = np.nanmean(rewards_copy)
@@ -129,11 +123,7 @@ class BaseBuffer(ABC):
         rewards = (np.concatenate(self.rewards[:_indx]) - mean_rewards) / (
             std_rewards + 1e-5
         )
-        # self.rewards[:_indx] = rewards.reshape(self.rewards[:_indx].shape).copy()
         self.norm_rewards = rewards.reshape(self.rewards[:_indx].shape).copy()
-        # print(len(self.norm_rewards))
-        # print('===')
-        # print(mean_rewards)
 
     def reset(self) -> None:
         """
@@ -148,9 +138,6 @@ class BaseBuffer(ABC):
         """
         Insert data into the buffer
         """
-        # print('===========================',self.step)
-        # print(self.obs[self.step + 1])
-        # print(self.rewards[self.step])
         self.obs[self.step] = obs.copy()
         self.next_obs[self.step] = next_obs.copy()
         self.rewards[self.step] = strategy_reward.copy().reshape(-1, 1)
@@ -183,15 +170,6 @@ class BaseBuffer(ABC):
     def _get_samples(
         self, batch_inds: np.ndarray, env_indices: np.ndarray, action_flag
     ):
-        # print("env_indices", env_indices)
-        # print("batch_inds", batch_inds)
-        # input()
-
-        # print('current obs',self.obs[batch_inds, env_indices, :])
-        # print('next obs',self.obs[batch_inds+1, env_indices, :])
-        # print('next',self.rewards[batch_inds, env_indices, :])
-        # print('action:',self.actions[batch_inds, env_indices, :])
-
         # different normaliz method 
         if self.normalize_pattern == "all":
             self.normalized_rewards()
@@ -392,7 +370,6 @@ class PrioritizedReplayBuffer(SeparatedReplayBuffer):
         :param batch_size: Number of element to sample (minibatch size)
         :return: the replay exprience index list
         """
-        # np.random.seed(self.seed)
         res = []
         # the sum over all priorities
         p_total = self._it_sum.sum(0, self.buffer_long - 1)

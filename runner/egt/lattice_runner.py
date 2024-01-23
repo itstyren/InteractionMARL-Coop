@@ -30,7 +30,6 @@ class LatticeRunner(Runner):
                     self.write_to_video(all_frames, episode) 
 
                 obs, actions,rewards=self.collect(step)
-                # print(obs[1])
                 data=obs,actions,rewards
 
                 # insert data into buffer
@@ -60,10 +59,7 @@ class LatticeRunner(Runner):
                     strategy_set=[]
                     for agent_id in range(self.num_agents):
                         strategy_set.append(self.envs.env.world.agents[agent_id].action.s)
-                    #     group_reward.append(train_infos[agent_id].get('reward'))
                     train_infos['results/episode_cooperation_level']=1-np.mean(strategy_set)
-                    # group_info['average_episode_rewards']=np.mean(group_reward)
-                    # train_infos.append(group_info)
                     
                 self.print_train(train_infos)
                 self.log_train(train_infos)
@@ -98,16 +94,9 @@ class LatticeRunner(Runner):
         # get strategy of all current agent
         actions = []
         for agent_id in range(self.num_agents):
-            # if self.env._index_map[agent]==10:
-            #     print('==============collect')
-            #     print(self.buffer[self.env._index_map[agent]].obs)
-            # this is where you would insert your policy
-            # action=self.trainer[self.env._index_map[agent]].policy.get_actions(self.buffer[self.env._index_map[agent]].obs[step])
-            # action=self.envs.world.agents[agent_id].action.s
             action=self.envs.env.world.agents[agent_id].action.s
             actions.append(action)
         obs, rews, termination, truncation,infos=self.envs.step(actions)
-        # rewards = [value for value in self.env.rewards.values()]
         return obs,actions,rews
 
     def insert(self, data):
@@ -132,12 +121,7 @@ class LatticeRunner(Runner):
             # print('old_s',self.envs.env.world.agents[agent_id].action.s)
             train_info,actions = self.trainer[agent_id].train(agent_id,self.buffer[agent_id],actions)
             if 'new_strategy' in train_info:
-                # print('agent id',agent_id)
-                # print('new_strategy',train_info['new_strategy'])
                 self.envs.env.world.agents[agent_id].action.s=train_info['new_strategy']
-                # print('new_s',self.envs.env.world.agents[agent_id].action.s)
-                # print('=====')
-                # input()
             train_infos.append(train_info)    
 
         for agent_id in range(self.num_agents):

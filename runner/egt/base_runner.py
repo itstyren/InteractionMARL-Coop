@@ -89,12 +89,6 @@ class Runner(object):
             )
         )
         print("-" * 44, "\n")
-        # print(
-        #     "Coop Level {}, Average Group Reward {}".format(
-        #         train_infos[-1].get("coop_level"),
-        #         train_infos[-1].get("average_episode_rewards"),
-        #     )
-        # )
 
     def _setup_learn(self, config):
         # Wandb is being used for logging

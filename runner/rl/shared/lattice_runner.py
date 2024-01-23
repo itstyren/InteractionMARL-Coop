@@ -31,18 +31,9 @@ class LatticeRunner(Runner):
         self._num_timesteps_at_start = 0
         self.num_timesteps = 0
         for episode in range(self.episodes):
-            # if self.use_linear_lr_decay:
-            #     self.trainer.policy.lr_decay(episode, episodes)
             for step in range(self.episode_length):
                 # Sample actions
                 actions = self.collect(step, current_timesteps)
-                # print(
-                #     "\n ======= Step {} Cooperative Level {}".format(
-                #         (current_timesteps + 1) * self.n_rollout_threads,
-                #         1 - np.mean(actions),
-                #     )
-                # )
-
                 # Obser reward
                 obs, rews,termination = self.envs.step(actions)
                 data = obs, rews,termination,actions
@@ -91,31 +82,14 @@ class LatticeRunner(Runner):
 
     @torch.no_grad()
     def collect(self, step, current_timesteps):
-        # for i in range(self.num_agents*self.n_rollout_threads):
-        #     # get action for every agent
-        #     action=self.trainer.policy(np.concatenate(self.buffer.observations[step])[i])
-        #     print(i,action)
-        #     # self.trainer.policy.get_actions(self.buffer.observations[step])
-        # #     print(self.buffer.observations[step][agent_id])
-        # print('===========================',step)
-        # print(self.buffer.obs[step])
-
-        # self.trainer.policy.set_training_mode(False)
-        # action= self.trainer.policy.get_actions(np.concatenate(self.buffer.obs[step]))
-        # print(np.concatenate(self.buffer.obs[step])[0])
         action = self.trainer.predict(np.concatenate(self.buffer.obs[step]))
-        # print('action',action)
-        # convert to Numpy array with shape (n_rollout_threads,num_agents)
         actions = np.array(np.split(_t2n(action), self.n_rollout_threads))
         self.trainer._update_current_progress_remaining(
             current_timesteps, self._total_timesteps
         )
         self.exploration_rate=self.trainer._on_step()
-        # self.trainer._on_step()
         return actions
 
     def insert(self, data):
         obs, rewards,termination, actions = data
-        # print('obs:',obs)
-        # print('rewards:',rewards)
         self.buffer.insert(obs, rewards,termination ,actions)

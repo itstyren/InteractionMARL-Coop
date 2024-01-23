@@ -61,19 +61,3 @@ def get_central_and_nearby_indices(dim, radius_length):
                 nearby_indices.append(y * dim + x)
 
     return center_idx, nearby_indices
-
-    # nearby_indices = []
-
-    # for i in range(-radius_length, radius_length + 1):
-    #     for j in range(-radius_length, radius_length + 1):
-    #         # Calculate the flattened index
-    #         index = middle_idx + i * dim + j
-
-    #         # Check if the index is within the bounds of the flattened list
-    #         if 0 <= index < dim * dim:
-    #             nearby_indices.append(index)
-
-    # print('\n')
-    # print(f'nearby_indices is {round(len(nearby_indices) / (dim**2) * 100, 2)}% large \n')
-    # print(nearby_indices)
-    # return middle_idx, nearby_indices

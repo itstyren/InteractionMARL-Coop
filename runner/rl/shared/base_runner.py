@@ -61,14 +61,6 @@ class Runner(object):
             from algorithms.dqn.dqn_trainer import Strategy_DQN as TrainAlgo
             from algorithms.dqn.policy import DQN_Policy as Policy
 
-        # Initialize share policy networks
-        # self.policy = Policy(
-        #     self.all_args,
-        #     self.envs.observation_spaces["agent_0"],
-        #     self.envs.action_spaces["agent_0"],
-        #     device=self.device,
-        #     optimizer_kwargs=optimizer_kwargs
-        # )
 
         # Restore a pre-trained model if the model directory is specified
         if self.model_dir is not None:
