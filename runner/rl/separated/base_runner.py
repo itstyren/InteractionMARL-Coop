@@ -51,6 +51,7 @@ class Runner(object):
 
         # Save train freq parameter, will be converted later to TrainFreq object
         train_freq = round_up(self.all_args.train_freq / self.n_rollout_threads, 0)
+        self.train_freq = (train_freq, self.all_args.freq_type)
         # Convert train freq parameter to TrainFreq object
         self._convert_train_freq()
 
@@ -97,6 +98,8 @@ class Runner(object):
 
             if self.all_args.replay_scheme == "uniform":
                 from utils.separated_buffer import SeparatedReplayBuffer as ReplayBuffer
+
+                # from utils.separated_buffer import SeparatedRolloutBuffer as ReplayBuffer
             else:
                 from utils.separated_buffer import (
                     PrioritizedReplayBuffer as ReplayBuffer,
@@ -188,6 +191,8 @@ class Runner(object):
             summary(self.iteract_trainer[0].policy.q_net, input_data=[tensor_date])
         print("\nStrat Training...\n")
 
+        # input()
+
         # setup callback function
         callback = None
         # print(self.save_dir)
@@ -266,7 +271,6 @@ class Runner(object):
         """
         # Sample actions
         actions,interactions = self.collect()
-        # print(actions,interactions)
         
         # one step to environment
         if self.all_args.train_pattern == "together" or self.all_args.train_pattern == "seperate":
@@ -434,6 +438,11 @@ class Runner(object):
             episode_exploration_rate,
         ) = extra_info
         print("-" * 44)
+        # print(
+        #     "|| Average Episode Rewards is {:>10.2f} ||".format(
+        #         train_infos["results/average_episode_rewards"]
+        #     )
+        # )
         print("| Payoff/ {:>33}|".format(" " * 10))
         print(
             "|    Cooperation Episode Payoff  {:>9.4f} |".format(
