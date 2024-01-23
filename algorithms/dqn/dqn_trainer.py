@@ -77,7 +77,6 @@ class Strategy_DQN(BaseAlgorithm):
             gradient_steps,
             action_flag=action_flag
         )
-        # torch.manual_seed(all_args.seed)
         self.device = device
         # self.policy = policy
         self.exploration_initial_eps = exploration_initial_eps
@@ -198,8 +197,6 @@ class Strategy_DQN(BaseAlgorithm):
             current_q_values = []
             for i in range(len(replay_data.next_observations)):
                 with torch.no_grad():
-                    # if action_flag==1:
-                    #     print(replay_data.next_observations[i])
                     # Compute the next Q-values using the target network
                     next_q = self.q_net_target(replay_data.next_observations[i])
                     next_q_values.append(next_q)
@@ -230,23 +227,15 @@ class Strategy_DQN(BaseAlgorithm):
                         else:
                             train_rewards[i]=None
                             
-            # print('next_q:',next_q_values)
-            # print('rewards:',replay_data.rewards)
             current_q_values = torch.stack(current_q_values)
-            # print('action code:',replay_data.actions.unsqueeze(1).long())
-            # print('reward:',replay_data.rewards)
-            # print('action:',replay_data.actions)
 
             # Retrieve the q-values for the actions from the replay buffer
             current_q_values = torch.gather(
                 current_q_values, dim=1, index=replay_data.actions.unsqueeze(1).long()
             ).squeeze()
-            # print('current_q_values',current_q_values)
-            # print('target_q_values:',target_q_values)
 
             # Compute Huber loss (aka the loss, less sensitive to outliers)
             loss = F.smooth_l1_loss(current_q_values, target_q_values)
-            # print('loss:',loss)
             losses.append(loss.item())
             # Optimize the policy
             self.policy.optimizer.zero_grad()

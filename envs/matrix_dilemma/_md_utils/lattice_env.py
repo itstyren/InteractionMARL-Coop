@@ -75,9 +75,6 @@ class LatticeEnv(AECEnv):
                     spaces.Discrete(2**interat_dim),
                     spaces.Discrete(2 * (2**4)),
                 ]
-                # self.action_spaces[agent.name] = spaces.MultiDiscrete(
-                #     np.array([2,2])
-                # )
 
             # set observation_spaces
             if self.args.algorithm_name == "EGT":
@@ -100,15 +97,6 @@ class LatticeEnv(AECEnv):
                                 np.full((4 * self.args.memory_length), 2)
                             ),  # Discrete 2 - Coop[0], Defection[1]
                             "p_a": spaces.MultiDiscrete([2] * self.args.memory_length),
-                            # "p_r": spaces.Box(
-                            #     low=-5, high=5, shape=(self.args.memory_length, 1)
-                            # ),
-                            # "n_interact": spaces.MultiDiscrete(
-                            #     np.full((4 * self.args.memory_length), 2)
-                            # ),  # Discrete 2 - interact 1 no_interact 0
-                            # "p_interact": spaces.MultiDiscrete(
-                            #     np.full((4 * self.args.memory_length), 2)
-                            # ),
                         }
                     )
                     # interacion decision only need one neighbour info
@@ -117,13 +105,6 @@ class LatticeEnv(AECEnv):
                             "n_s": spaces.MultiDiscrete(
                                 np.full((interat_dim * self.args.memory_length), 2)
                             ),  # Discrete 2 - Coop[0], Defection[1]
-                            # "p_a": spaces.MultiDiscrete([2] * self.args.memory_length),
-                            # "p_r": spaces.Box(
-                            #     low=-5, high=5, shape=(self.args.memory_length, 1)
-                            # ),
-                            # "n_interact": spaces.MultiDiscrete(
-                            #     np.full((interat_dim* self.args.memory_length), 2)
-                            # ),  # Discrete 2 - interact 1 no_interact 0
                             "p_interact": spaces.MultiDiscrete(
                                 np.full((interat_dim * self.args.memory_length), 2)
                             ),
@@ -136,12 +117,6 @@ class LatticeEnv(AECEnv):
                                 np.full((4 * self.args.memory_length), 2)
                             ),  # Discrete 2 - Coop[0], Defection[1]
                             "p_a": spaces.MultiDiscrete([2] * self.args.memory_length),
-                            # "p_r": spaces.Box(
-                            #     low=-5, high=5, shape=(self.args.memory_length, 1)
-                            # ),
-                            # "n_interact": spaces.MultiDiscrete(
-                            #     np.full((4 * self.args.memory_length), 2)
-                            # ),  # Discrete 2 - interact 1 no_interact 0
                             "p_interact": spaces.MultiDiscrete(
                                 np.full((4 * self.args.memory_length), 2)
                             ),
@@ -155,12 +130,8 @@ class LatticeEnv(AECEnv):
                                 np.full((4 * self.args.memory_length), 2)
                             ),  # Discrete 2 - Coop[0], Defection[1]
                             "p_a": spaces.MultiDiscrete([2] * self.args.memory_length),
-                            # "p_r": spaces.Box(
-                            #     low=-5, high=5, shape=(self.args.memory_length, 1)
-                            # ),
                         }
                     )
-                # print(self.observation_spaces[agent.name].sample()  )
 
     def observation_space(self, agent):
         return self.observation_spaces[agent]
@@ -218,9 +189,6 @@ class LatticeEnv(AECEnv):
         self.agent_selection = self._agent_selector.reset()
         if options == "truncation":
             self.steps = 0
-
-        # set reward for initial strategy
-        # obs_n, reward_n, termination, infors = self._execute_world_step()
 
         obs_n = []
         interact_obs_n = []
@@ -330,28 +298,6 @@ class LatticeEnv(AECEnv):
         # Get current obs info for each agent
         for agent in self.world.agents:
             if self.args.seperate_interaction_reward:
-                # sum_agent_action_ia = np.sum(agent.action.ia)
-                # optimal_reward = 0
-                # interact_reward = 0
-                # # if sum_agent_action_ia > 0:
-                # for _, neighbour_idx in enumerate(agent.neighbours):
-                #     optimal_reward+=self.world.payoff_matrix[agent.action.s,self.world.agents[neighbour_idx].action.s]
-                # optimal_reward=optimal_reward/4
-                # if agent.action.ia[_] == 1:
-                # if self.world.agents[neighbour_idx].action.s == 0:
-                # optimal_reward+=self.world.payoff_matrix[agent.action.s,0]
-                # optimal_reward += 1
-                # else:
-                # optimal_reward -= 1
-
-                # interact_reward = optimal_reward/sum_agent_action_ia
-                # if sum_agent_action_ia==0:
-                #     int_rwd=0
-                # else:
-                #     int_rwd=agent.reward/sum_agent_action_ia
-                # interact_reward=int_rwd-optimal_reward/4
-                # interact_reward=(n_c_num-3)/4
-                # interact_reward_n.append(interact_reward)
                 interact_reward_n.append(agent.reward)
 
             if self.args.compare_reward_pattern != "none":
@@ -385,16 +331,6 @@ class LatticeEnv(AECEnv):
                     )
 
                 compare_reward_n.append(agent_strategy_reward)
-                # if agent.action.s != self.world.agents[n_i].action.s:
-                # if agent.action.s==0:
-                # print(agent.reward,self.world.agents[n_i].reward)
-                # reward=(agent.reward-self.world.agents[n_i].reward)/4
-                # reward=agent.reward-self.world.agents[n_i].reward
-                # # if agent.action.s==0 and reward>0:
-                # #     print(reward)
-                # compare_reward_n.append(reward)
-                # reward=agent.reward-payoff_n[n_i]
-                # instant_payoff_n.append(reward)
 
             obs_n.append(self.observe(agent.name))
             if self.args.train_pattern == "seperate":

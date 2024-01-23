@@ -98,8 +98,6 @@ class Runner(object):
 
             if self.all_args.replay_scheme == "uniform":
                 from utils.separated_buffer import SeparatedReplayBuffer as ReplayBuffer
-
-                # from utils.separated_buffer import SeparatedRolloutBuffer as ReplayBuffer
             else:
                 from utils.separated_buffer import (
                     PrioritizedReplayBuffer as ReplayBuffer,
@@ -195,7 +193,6 @@ class Runner(object):
 
         # setup callback function
         callback = None
-        # print(self.save_dir)
         if self.save_interval > 0:
             callback = CheckpointCallback(
                 save_freq=self.save_interval,
@@ -288,13 +285,9 @@ class Runner(object):
 
         for idx, trunc in enumerate(truncations):
             if trunc:
-                # print(next_obs[idx])
-                # print(infos[idx]["final_observation"])
                 real_next_obs[idx] = infos[idx]["final_observation"]
                 if self.all_args.train_pattern=='seperate':
                     real_next_i_obs[idx] = infos[idx]["final_i_observation"]
-                # print(real_next_obs[idx])
-                # print('===============\n')
 
         data = real_next_obs,real_next_i_obs, rews, terminations, truncations, actions,interactions
 
@@ -438,11 +431,6 @@ class Runner(object):
             episode_exploration_rate,
         ) = extra_info
         print("-" * 44)
-        # print(
-        #     "|| Average Episode Rewards is {:>10.2f} ||".format(
-        #         train_infos["results/average_episode_rewards"]
-        #     )
-        # )
         print("| Payoff/ {:>33}|".format(" " * 10))
         print(
             "|    Cooperation Episode Payoff  {:>9.4f} |".format(

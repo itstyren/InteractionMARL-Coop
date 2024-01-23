@@ -1,7 +1,5 @@
 import torch
 import torch.nn as nn
-import numpy as np
-# from utils.util import update_linear_schedule
 from stable_baselines3.dqn.policies import QNetwork
 from gymnasium import spaces
 from typing import Any, Dict, List, Optional, Type
@@ -9,14 +7,9 @@ from algorithms.basePolicy import BasePolicy
 from stable_baselines3.common.torch_layers import (
     BaseFeaturesExtractor,
     CombinedExtractor,
-    FlattenExtractor,
-    MlpExtractor,
-    NatureCNN,
     create_mlp,
 )
 from stable_baselines3.common.type_aliases import Schedule
-from stable_baselines3 import DQN
-from stable_baselines3.common.preprocessing import get_action_dim, is_image_space, maybe_transpose, preprocess_obs
 
 
 class QNetwork(BasePolicy):
@@ -68,9 +61,6 @@ class QNetwork(BasePolicy):
         :param obs: Observation
         :return: The estimated Q-Value for each action.
         """
-        # print(obs)
-        # print(self.features_extractor)
-        # print(self.extract_features(obs, self.features_extractor))
         return self.q_net(self.extract_features(obs, self.features_extractor))
 
     def _predict(self, observation: torch.Tensor, deterministic: bool = True) -> torch.Tensor:
@@ -79,10 +69,7 @@ class QNetwork(BasePolicy):
         '''
  
         q_values = self(observation)
-
-        # Greedy action
         action = q_values.argmax().reshape(-1)
-        # print(action)
 
         return action
 
@@ -109,7 +96,6 @@ class DQN_Policy(BasePolicy):
         net_arch: Optional[List[int]] = None,
         activation_fn: Type[nn.Module] = nn.ReLU,
         features_extractor_class: Type[BaseFeaturesExtractor] = CombinedExtractor,
-        # features_extractor_class: Type[BaseFeaturesExtractor] = FlattenExtractor,
         features_extractor_kwargs: Optional[Dict[str, Any]] = None,
         normalize_images: bool = False,
         optimizer_class: Type[torch.optim.Optimizer] = torch.optim.Adam,
@@ -150,16 +136,6 @@ class DQN_Policy(BasePolicy):
 
         self._build(lr_schedule)
 
-    # def lr_decay(self, episode, episodes):
-    #     """
-    #     Decay the actor and critic learning rates.
-    #     :param episode: (int) current training episode.
-    #     :param episodes: (int) total number of training episodes.
-    #     """
-    #     update_linear_schedule(self.optimizer, episode, episodes, self.lr)
-    #     print('lr:',self.lr)
-
-    # def _build(self, lr_schedule: Schedule) -> None:
     def _build(self,lr_schedule: Schedule) -> None:
         """
         Create the network and the optimizer.

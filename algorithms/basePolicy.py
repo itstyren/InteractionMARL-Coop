@@ -112,11 +112,6 @@ class BaseModel(nn.Module):
         """
         preprocessed_obs = preprocess_obs(obs, self.observation_space)
         combined_tensor = torch.cat([preprocessed_obs[key].flatten() for key in preprocessed_obs], dim=0)
-        # extractor_featrues=features_extractor(preprocessed_obs)
-        # print(extractor_featrues)
-        # extractor_featrues=features_extractor(preprocessed_obs).flatten()
-        # print(extractor_featrues)
-        # return extractor_featrues
         return combined_tensor
 
     def obs_to_tensor(self, observation: Union[np.ndarray, Dict[str, np.ndarray]]) -> Tuple[torch.Tensor, bool]:

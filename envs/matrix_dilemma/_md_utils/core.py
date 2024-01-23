@@ -24,12 +24,8 @@ class Agent:  # properties of agent entities
         self.memory_alpha = args.memory_alpha
         self.memory_lenght = args.memory_length
         self.seed = args.seed
-        # np.random.seed(args.seed)
         # wether RL or EGT agent
         self.type = "RL"
-
-        # # memory of neighbour action
-        # self.neighbours_act_m = deque(maxlen=self.memory_lenght)
 
     def init_memory(
         self, neighbours_act_m, neighbours_intaction_m, intaction_m, self_act_m
