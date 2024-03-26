@@ -52,8 +52,6 @@ class Scenario(BaseScenario):
             agent.name = f"agent_{i}"
             agent.index = i
 
-            # agent.action.s = np.random.choice([0, 1], p=world.initial_ratio.ravel())
-
         # set neighbour index
         world.agents = gen_lattice_neighbours(world.agents)
         for agent in world.agents:
@@ -63,7 +61,6 @@ class Scenario(BaseScenario):
             else:
                 agent.action.ia = np.random.randint(2, size=4)
             neighbours_act_m = [
-                    # np.random.choice([0, 1], p=initial_ratio.ravel())
                     np.random.choice([0, 1], p=world.initial_ratio.ravel())
                     for _ in range(self.memory_lenght)
                 ]
@@ -81,7 +78,6 @@ class Scenario(BaseScenario):
 
         if self.init_distribution=='circle':
             center_idx, nearby_indices=get_central_and_nearby_indices(self.env_dim,10)
-        # print(nearby_indices)
 
         # random initial strategy
         for i, agent in enumerate(world.agents):
@@ -105,11 +101,7 @@ class Scenario(BaseScenario):
         """
         reward = 0.0
         for j in agent.neighbours:
-            # print(reward)
             reward += world.payoff_matrix[agent.action.s, world.agents[j].action.s]
-            # print(agent.action.s, world.agents[j].action.s)
-            # print('========',reward)
-        # reward += world.payoff_matrix[agent.action.s, agent.action.s]
         return reward
 
     def observation(self, agent, world):

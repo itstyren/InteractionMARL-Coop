@@ -1,6 +1,5 @@
-import argparse, yaml
+import argparse
 from typing import Dict
-import sys
 from distutils.util import strtobool
 
 
@@ -12,7 +11,7 @@ def get_config():
     # base config
     parser.add_argument(
         "--framework",
-        choices=["tf", "torch"],
+        choices=["torch"],
         default="torch",
         help="The DL framework specifier (tf2 eager is not supported).",
     )
@@ -126,6 +125,13 @@ def get_config():
         help="compare reward with average level",
     )
     parser.add_argument(
+        "--comparison_benchmarks",
+        type=str,
+        choices=["none", "selfishness",'svo'],
+        default="none",
+        help="if comparisons with MARL-based techniques",
+    )
+    parser.add_argument(
         "--seperate_interaction_reward",
         action="store_true",
         default=False,
@@ -138,13 +144,6 @@ def get_config():
         default="random",
         help="Initial strategy distribution should be random or a circle",
     )
-
-    # parser.add_argument(
-    #     "--memory_length",
-    #     type=int,
-    #     default=5,
-    #     help="The maximum action memeory one individual could hold",
-    # )
     parser.add_argument(
         "--memory_alpha",
         type=float,

@@ -123,7 +123,6 @@ class Runner(object):
         for png in all_frames:
             img = imageio.imread(png)
             images.append(img)
-        # print(len(images))
         if self.all_args.use_wandb:
             import wandb
 
@@ -155,7 +154,6 @@ class Runner(object):
         :param train_infos: (dict) information about training update.
         :param total_num_steps: (int) total number of training env steps.
         """
-        # print(train_infos)
         for k, v in train_infos.items():
             if self.use_wandb:
                 wandb.log({k: v}, step=self.num_timesteps)

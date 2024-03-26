@@ -51,14 +51,11 @@ class Scenario(BaseScenario):
         for i, agent in enumerate(world.agents):
             agent.name = f"agent_{i}"
             agent.index = i
-            # random initial strategy
-            # agent.action.s = np.random.choice([0, 1], p=world.initial_ratio.ravel())
 
         # set neighbour index
         world.agents = gen_lattice_neighbours(world.agents)
         for agent in world.agents:
             agent.init_memory(np.array(args.initial_ratio))
-        # print('Agent Reward Memory Length {}'.format(len(agent.past_reward)))
         return world
 
     def reset_world(self, world):

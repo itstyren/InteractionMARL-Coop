@@ -1,6 +1,6 @@
 
 import numpy as np
-from stable_baselines3.common.preprocessing import get_action_dim, get_obs_shape
+from stable_baselines3.common.preprocessing import get_obs_shape
 
 class Buffer(object):
     def __init__(self, args, obs_space):
@@ -29,7 +29,6 @@ class Buffer(object):
 
         self.obs[self.step + 1] = obs.copy()
         self.rewards[self.step] = reward
-        # print(reward)
         self.step = (self.step + 1) % self.episode_length
 
     def after_update(self,obs):
