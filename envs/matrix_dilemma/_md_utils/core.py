@@ -88,7 +88,15 @@ class World:
         self.payoff_matrix = np.array(
             [[1, 0], [dilemma_strength, 0]]
         )  # cost-to-benefit ratio
-        # self.payoff_matrix=np.array([[1,-1], [1, 0]]) # cost-to-benefit ratio
+        # self.payoff_matrix = np.array(
+        #     [[1, -0.3], [1.3, 0]]
+        # ) 
+        # selfishness level (only used for comparison benchmarks)
+        if dilemma_strength<=1:
+            self.selfishness=0
+        else:
+            self.selfishness=(dilemma_strength-1)/(2-dilemma_strength)
+        
 
     def step(self):
         """

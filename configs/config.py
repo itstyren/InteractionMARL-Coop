@@ -125,6 +125,13 @@ def get_config():
         help="compare reward with average level",
     )
     parser.add_argument(
+        "--comparison_benchmarks",
+        type=str,
+        choices=["none", "selfishness",'svo'],
+        default="none",
+        help="if comparisons with MARL-based techniques",
+    )
+    parser.add_argument(
         "--seperate_interaction_reward",
         action="store_true",
         default=False,

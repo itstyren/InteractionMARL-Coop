@@ -6,6 +6,7 @@ from gymnasium import spaces
 import gymnasium
 from matplotlib import colors
 import matplotlib.pyplot as plt
+import math
 
 
 class LatticeEnv(AECEnv):
@@ -278,10 +279,33 @@ class LatticeEnv(AECEnv):
                 self.rewards[agent.name] = final_reward
                 final_reward_n.append(final_reward)
             else:
-                # If rewards_pattern is not "final", update agent's reward and rewards dictionary
+                # If rewards_pattern is not "final", update agent's reward and rewards dictionary normally
                 agent.reward = agent_reward
                 self.rewards[agent.name] = agent_reward
 
+        if self.args.comparison_benchmarks=='selfishness':
+            for agent in self.world.agents:
+                other_rewards = (sum(self.rewards.values())-agent.reward)
+                agent.reward= agent_reward+self.world.selfishness*other_rewards
+                self.rewards[agent.name] = agent.reward
+        elif self.args.comparison_benchmarks=='svo':
+            for agent in self.world.agents:
+                # arithmetic mean
+                other_rewards = (sum(self.rewards.values())-agent.reward)/(len(self.world.agents)-1)
+                reward_angle=math.atan2(other_rewards,agent.reward)
+
+                # Angle in degrees
+                angle_deg = 45
+                # Convert angle to radians
+                angle_rad = math.radians(angle_deg)
+                # Compute tangent
+                tan_value = math.tan(angle_rad)
+                agent.reward= agent.reward-0.1*abs(tan_value-reward_angle)
+                self.rewards[agent.name] = agent.reward
+
+        
+        
+        
         # Check if comparison of rewards is enabled
         if self.args.compare_reward_pattern == "all":
             # Initialize a list to store rewards for each strategy
