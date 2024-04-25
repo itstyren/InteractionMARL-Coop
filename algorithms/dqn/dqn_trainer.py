@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-from typing import Dict, Optional, Tuple, Type, TypeVar, Union
+from typing import Dict, Optional, Tuple, Type, Union
 from stable_baselines3.common.utils import (
     get_linear_fn,
     get_parameters_by_name,

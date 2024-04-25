@@ -33,7 +33,6 @@ class Agent:  # properties of agent entities
         """
         Initial memory list of all neighbour action with several past actions
         """
-        # print(neighbours_act_m, neighbours_intaction_m, intaction_m, self_act_m)
 
         self.neighbours_act_m = [
             deque(
@@ -42,13 +41,9 @@ class Agent:  # properties of agent entities
             )
             for _ in range(len(self.neighbours))
         ]
-        # print(self.neighbours_act_m)
+
         self.neighbours_intaction_m = [
             deque(
-                # [
-                #     1
-                #     for _ in range(self.memory_lenght)
-                # ],
                 neighbours_intaction_m,
                 maxlen=self.memory_lenght,
             )
@@ -57,10 +52,6 @@ class Agent:  # properties of agent entities
 
         self.intaction_m = [
             deque(
-                # [
-                #     1
-                #     for _ in range(self.memory_lenght)
-                # ],
                 intaction_m,
                 maxlen=self.memory_lenght,
             )

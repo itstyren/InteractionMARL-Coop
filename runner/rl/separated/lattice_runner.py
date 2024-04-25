@@ -655,12 +655,9 @@ class LatticeRunner(Runner):
         eval_log_infos["eval_interaction/cd_link"] = np.nanmean(cd_link)
         eval_log_infos["eval_interaction/dd_link"] = np.nanmean(dd_link)
         
-        # print(eval_log_infos)
         self.log_train(eval_log_infos)
         
         self.StopTrainingOnNoModelImprovement()
-        # print(average_robutness)
-        # breakpoint()
         
     def StopTrainingOnNoModelImprovement(self):
         '''
@@ -678,7 +675,7 @@ class LatticeRunner(Runner):
             self.no_improvement_evals += 1
             if self.no_improvement_evals > self.max_no_improvement_evals:
                 continue_training = False
-        # print(self.no_improvement_evals)
+
         self.last_best_mean_payoff = self.best_mean_payoff
         self.last_best_cooperation_level=c_l
 

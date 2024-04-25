@@ -37,3 +37,7 @@ chmod +x ./train_lattirc_rl.sh
 Note: We utilize Weights & Biases for visualization. Please ensure you are registered and logged in on the Weights & Biases platform prior to training.
 
 We additionally provide `./eval_lattice_rl.sh` for evaluation. 
+
+
+# 4. Visualization
+The `visualization` directory contains the Jupyter notebook `plot_result.ipynb`. This notebook compiles and visualizes the results reported in both the main paper and supplementary material.
