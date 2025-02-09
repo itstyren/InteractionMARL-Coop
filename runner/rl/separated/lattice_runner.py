@@ -359,6 +359,9 @@ class LatticeRunner(Runner):
 
         # Unpack data for interaction training
         for agent_id in range(self.num_agents):
+            # print(list(obs[:, agent_id]))
+            # print('='*10)
+            # breakpoint()
             self.buffer[agent_id].insert(
                 np.array(list(obs[:, agent_id])),
                 np.array(list(real_next_obs[:, agent_id])),

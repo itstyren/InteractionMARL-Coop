@@ -236,6 +236,7 @@ class Strategy_DQN(BaseAlgorithm):
 
             # Compute Huber loss (aka the loss, less sensitive to outliers)
             loss = F.smooth_l1_loss(current_q_values, target_q_values)
+
             losses.append(loss.item())
             # Optimize the policy
             self.policy.optimizer.zero_grad()

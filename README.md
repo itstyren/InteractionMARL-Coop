@@ -1,5 +1,5 @@
 # InteractionMARL-Coop
-Welcome to the InteractionMARL-Coop repository, the official codebase supporting the paper ["Enhancing Cooperation through Selective Interaction and Long-term Experiences in Multi-Agent Reinforcement Learning"](https://arxiv.org/abs/2405.02654). This repository offers a comprehensive training framework for fostering cooperative behaviors in multi-agent systems.
+Welcome to the **InteractionMARL-Coop** repository, the official codebase supporting the paper ["Enhancing Cooperation through Selective Interaction and Long-term Experiences in Multi-Agent Reinforcement Learning"](https://arxiv.org/abs/2405.02654), accepted at **IJCAI 2024**. This repository offers a comprehensive training framework for fostering cooperative behaviors in multi-agent systems.
 
 We provide a detailed description of the hyperparameters and training procedures in the Supplementary Material of our paper. We would strongly suggest to review these details thoroughly before executing the code to ensure optimal results.
 
@@ -43,4 +43,11 @@ We additionally provide `./eval_lattice_rl.sh` for evaluation.
 The `visualization` directory contains the Jupyter notebook `plot_result.ipynb`. This notebook compiles and visualizes the results reported in both the main paper and supplementary material.
 
 # 5. Paper citation
-Coming soon.
+```text
+@inproceedings{ren2024enhancing,
+  title={Enhancing Cooperation through Selective Interaction and Long-term Experiences in Multi-Agent Reinforcement Learning},
+  author={Ren, Tianyu and Zeng, Xiao-Jun},
+  booktitle={Proceedings of the Thirty-Third International Joint Conference on Artificial Intelligence (IJCAI-24)},
+  year={2024}
+}
+```
